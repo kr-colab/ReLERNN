@@ -1,2 +1,2 @@
 # ReLERNN
-recombination estimation using recurrent neural networks
+Recombination Landscape Estimation using Recurrent Neural Networks
