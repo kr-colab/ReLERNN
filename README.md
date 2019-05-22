@@ -1,5 +1,5 @@
-*ReLERNN*
-*Recombination Landscape Estimation using Recurrent Neural Networks*
+*ReLERNN*-
+**Recombination Landscape Estimation using Recurrent Neural Networks**
 ====================================================================
 
 ReLERNN uses deep learning to infer the genome-wide landscape of recombination from as few as two diploid samples.
@@ -20,11 +20,9 @@ It should be as simple as that.
 An example VCF file (10 haploid samples) and a shell script for running ReLERNN's four modules is located in $/ReLERNN/examples.
 To test the functionality of ReLERNN simply use the following commands:
 
-
 ```
 $ cd examples
 $ ./example_pipeline.sh
-
 ```
 
 Provided everything worked as planned, $ReLERNN/examples/example_output/ should be populated with a few directories along with the files: example.PREDICT.txt and example.PREDICT.BSCORRECT.txt.
