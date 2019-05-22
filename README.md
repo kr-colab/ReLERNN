@@ -1,11 +1,11 @@
-*ReLERNN*
-*Recombination Landscape Estimation using Recurrent Neural Networks*
+*ReLERNN*-
+**Recombination Landscape Estimation using Recurrent Neural Networks**
 ====================================================================
 
 ReLERNN uses deep learning to infer the genome-wide landscape of recombination from as few as two diploid samples.
 This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly.   
 
-## Instalation on linux
+## Installation on linux
 ReLERNN is installed using the supplied setup.py file. All dependencies will be automatically installed via pip.
 Use the following commands to install ReLERNN:
 
