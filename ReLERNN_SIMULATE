@@ -4,13 +4,9 @@ Reads a VCF file, estimates simulation parameters, and runs simulates via msprim
 NOTE: This assumes that the user has previously QC'd and filtered the VCF.
 """
 
-import os,sys
-relernnBase = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])),"scripts")
-sys.path.insert(1, relernnBase)
-
-from Imports import *
-from Simulator import *
-from Helpers import *
+from imports import *
+from simulator import *
+from helpers import *
 
 
 def check_demHist(path):

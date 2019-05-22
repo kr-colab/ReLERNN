@@ -4,16 +4,11 @@ Performs a parametric bootstrap to assess any potential bias in recombination ra
 Corrects for this bias and adds 95% confidence intevals to the predictions
 """
 
-
-import os,sys
-relernnBase = os.path.join(os.path.dirname(os.path.abspath(sys.argv[0])),"scripts")
-sys.path.insert(1, relernnBase)
-
-from Imports import *
-from Simulator import *
-from Helpers import *
-from SequenceBatchGenerator import *
-from Networks import *
+from imports import *
+from simulator import *
+from helpers import *
+from sequenceBatchGenerator import *
+from networks import *
 
 
 def relu(x):
