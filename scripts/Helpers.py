@@ -150,21 +150,13 @@ def getHapsPosLabels(direc,simulator,shuffle=False):
     li = os.listdir(direc)
     numReps = len(li) - 1   #minus one for the 'info.p' file
 
-    if(simulator=='msprime'):
-        for i in range(numReps):
-            filename = str(i) + ".trees"
-            filepath = os.path.join(direc,filename)
-            treeSequence = msp.load(filepath)
-            haps.append(treeSequence.genotype_matrix())
-            positions.append(np.array([s.position for s in treeSequence.sites()]))
+    for i in range(numReps):
+        filename = str(i) + ".trees"
+        filepath = os.path.join(direc,filename)
+        treeSequence = msp.load(filepath)
+        haps.append(treeSequence.genotype_matrix())
+        positions.append(np.array([s.position for s in treeSequence.sites()]))
 
-    else:
-        for i in range(numReps):
-            filename = str(i) + ".trees"
-            filepath = os.path.join(direc,filename)
-            treeSequence = pyslim.load(filepath)
-            haps.append(treeSequence.genotype_matrix())
-            positions.append(np.array([s.position for s in treeSequence.sites()]))
 
     haps = np.array(haps)
     positions = np.array(positions)
@@ -239,37 +231,20 @@ def mutateTrees(treesDirec,outputDirec,muLow,muHigh,numMutsPerTree=1,simulator="
     li = os.listdir(treesDirec)
     numReps = len(li) - 1   #minus one for the 'labels.txt' file
 
-    if(simulator=='msprime'):
-        for i in range(numReps):
-            filename = str(i) + ".trees"
-            filepath = os.path.join(treesDirec,filename)
-            treeSequence = msp.load(filepath)
-            blankTreeSequence = msp.mutate(treeSequence,0)
-            rho = labels[i]
-            for mut in range(numMuts):
-                simNum = (i*numMuts) + mut
-                simFileName = os.path.join(outputDirec,str(simNum)+".trees")
-                mutationRate = np.random.uniform(muLow,muHigh)
-                mutatedTreeSequence = msp.mutate(blankTreeSequence,mutationRate)
-                mutatedTreeSequence.dump(simFileName)
-                newMaxSegSites = max(newMaxSegSites,mutatedTreeSequence.num_sites)
-                newLabels.append(rho)
-
-    else:
-        for i in range(numReps):
-            filename = str(i) + ".trees"
-            filepath = os.path.join(treesDirec,filename)
-            treeSequence = pyslim.load(filepath)
-            blankTreeSequence = msp.mutate(treeSequence,0)
-            rho = labels[i]
-            for mut in range(numMuts):
-                simNum = (i*numMuts) + mut
-                simFileName = os.path.join(outputDirec,str(simNum)+".trees")
-                mutationRate = np.random.uniform(muLow,muHigh)
-                mutatedTreeSequence = msp.mutate(blankTreeSequence,mutationRate)
-                mutatedTreeSequence.dump(simFileName)
-                newMaxSegSites = max(newMaxSegSites,mutatedTreeSequence.num_sites)
-                newLabels.append(rho)
+    for i in range(numReps):
+        filename = str(i) + ".trees"
+        filepath = os.path.join(treesDirec,filename)
+        treeSequence = msp.load(filepath)
+        blankTreeSequence = msp.mutate(treeSequence,0)
+        rho = labels[i]
+        for mut in range(numMuts):
+            simNum = (i*numMuts) + mut
+            simFileName = os.path.join(outputDirec,str(simNum)+".trees")
+            mutationRate = np.random.uniform(muLow,muHigh)
+            mutatedTreeSequence = msp.mutate(blankTreeSequence,mutationRate)
+            mutatedTreeSequence.dump(simFileName)
+            newMaxSegSites = max(newMaxSegSites,mutatedTreeSequence.num_sites)
+            newLabels.append(rho)
 
     infoCopy = copy.deepcopy(infoDict)
     infoCopy["maxSegSites"] = newMaxSeqSites
@@ -279,32 +254,6 @@ def mutateTrees(treesDirec,outputDirec,muLow,muHigh,numMutsPerTree=1,simulator="
     outInfoFilename = os.path.join(outputDirec,"info.p")
     pickle.dump(infocopy,open(outInfoFilename,"wb"))
 
-    return None
-
-#-------------------------------------------------------------------------------------------
-
-def printDirInfo(treesDirec):
-    "print out the info nicely"
-    infoFilename = os.path.join(treesDirec,"info.p")
-    infoDict = pickle.load(open(infoFilename,"rb"))
-
-    table = pt()
-    keys = []
-    values = []
-    for key in infoDict:
-        if(key == "y"):
-            keys.append("num targets")
-            values.append(len(infoDict[key]))
-        elif(key=="MspDemographics"):
-            keys.append(key)
-            values.append(str(infoDict[key]))
-        else:
-            keys.append(key)
-            values.append(infoDict[key])
-
-    table.field_names = keys
-    table.add_row(values)
-    print(table)
     return None
 
 #-------------------------------------------------------------------------------------------
