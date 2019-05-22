@@ -13,10 +13,11 @@ import argparse
 import h5py
 import allel
 
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-
 from sklearn.neighbors import NearestNeighbors
+
+import matplotlib as mpl
+mpl.use('pdf')
+import matplotlib.pyplot as plt
 
 import keras
 import keras.backend as K
