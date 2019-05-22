@@ -9,11 +9,11 @@ This repository contains the code and instructions required to run ReLERNN, and 
 ReLERNN is installed using the supplied setup.py file. All dependencies will be automatically installed via pip.
 Use the following commands to install ReLERNN:
 
-'''
+```
 $ git clone https://github.com/kern-lab/ReLERNN.git
 $ cd ReLERNN
 $ python setup.py install
-'''
+```
 
 It should be as simple as that.
 
@@ -21,10 +21,10 @@ It should be as simple as that.
 An example VCF file (10 haploid samples) and a shell script for running ReLERNN's four modules is located in $/ReLERNN/examples.
 To test the functionality of ReLERNN simply use the following commands:
 
-'''
+```
 $ cd examples
 $ bash example_pipeline.sh
-'''
+```
 
 Provided everything worked as planned, $ReLERNN/examples/example_output/ should be populated with a few directories along with the files: example.PREDICT.txt and example.PREDICT.BSCORRECT.txt.
 The latter is the finalized output file with your recombination rate estimates.
