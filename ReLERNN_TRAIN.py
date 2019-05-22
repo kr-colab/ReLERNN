@@ -14,6 +14,7 @@ from Networks import *
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
+    parser.add_argument('--nEpoch',dest='nEpoch',help='Number of epochs to train over', type=int, default=250)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default=0)
     args = parser.parse_args()
 
@@ -111,7 +112,7 @@ def main():
             TestGenerator=test_sequence,
             resultsFile=test_resultFile,
             outputNetwork=[modelSave,weightsSave],
-            numEpochs=250,
+            numEpochs=args.nEpoch,
             validationSteps=20,
             gpuID=args.gpuID)
 

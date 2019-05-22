@@ -114,6 +114,9 @@ def main():
     parser.add_argument('-m','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
     parser.add_argument('-g','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
     parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Upper bound for the assumed ratio between rho and theta',type=float,default=10)
+    parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)
+    parser.add_argument('--nVali',dest='nVali',help='Number of validation examples to simulate',type=int,default=1000)
+    parser.add_argument('--nTest',dest='nTest',help='Number of test examples to simulate',type=int,default=1000)
     parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
     args = parser.parse_args()
 
@@ -302,11 +305,11 @@ def main():
 
     ## Simulate data
     print("\nTraining set:")
-    dg_train.simulateAndProduceTrees(numReps=100000,direc=trainDir,simulator="msprime",nProc=nProc)
+    dg_train.simulateAndProduceTrees(numReps=args.nTrain,direc=trainDir,simulator="msprime",nProc=nProc)
     print("Validation set:")
-    dg_vali.simulateAndProduceTrees(numReps=1000,direc=valiDir,simulator="msprime",nProc=nProc)
+    dg_vali.simulateAndProduceTrees(numReps=args.nVali,direc=valiDir,simulator="msprime",nProc=nProc)
     print("Test set:")
-    dg_test.simulateAndProduceTrees(numReps=1000,direc=testDir,simulator="msprime",nProc=nProc)
+    dg_test.simulateAndProduceTrees(numReps=args.nTest,direc=testDir,simulator="msprime",nProc=nProc)
     print("\nSIMULATIONS FINISHED!\n")
 
 

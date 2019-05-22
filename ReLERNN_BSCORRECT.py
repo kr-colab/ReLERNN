@@ -45,6 +45,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default=0)
+    parser.add_argument('--nSlice',dest='nSlice',help='Number of recombination rate bins to simulate over', type=int, default=100)
+    parser.add_argument('--nReps',dest='nReps',help='Number of simulations per step', type=int, default=1000)
     parser.add_argument('--nCPU',dest='nCPU',help='Number of CPUs to use', type=int, default=1)
     args = parser.parse_args()
 
@@ -87,8 +89,8 @@ def main():
             batchPars,
             trainDir,
             network=modelWeights,
-            slices=100,
-            repsPerSlice=1000,
+            slices=args.nSlice,
+            repsPerSlice=args.nReps,
             gpuID=args.gpuID,
             out=bs_resultFile,
             tempDir=bsDir,
