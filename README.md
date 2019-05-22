@@ -18,7 +18,7 @@ Alternatively, you can clone the directly from github and install via setup.py u
 ```
 $ git clone https://github.com/kern-lab/ReLERNN.git
 $ cd ReLERNN
-$ python3 setup.py
+$ python3 setup.py install
 ```
 
 It should be as simple as that.
@@ -39,5 +39,4 @@ The above example took X seconds to complete on a Xeon machine using four CPUs a
 Note that the parameters used for this example were only designed to test the success of the installation, not to make accurate predictions.
 Please use guidelines below for the best results when analyzing real data.
 While it is possible to run ReLERNN without a dedicated GPU, if you do try this, you are going to have a bad time.
-
 
