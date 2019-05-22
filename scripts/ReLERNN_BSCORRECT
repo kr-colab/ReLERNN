@@ -4,11 +4,11 @@ Performs a parametric bootstrap to assess any potential bias in recombination ra
 Corrects for this bias and adds 95% confidence intevals to the predictions
 """
 
-from imports import *
-from simulator import *
-from helpers import *
-from sequenceBatchGenerator import *
-from networks import *
+from ReLERNN.imports import *
+from ReLERNN.simulator import *
+from ReLERNN.helpers import *
+from ReLERNN.sequenceBatchGenerator import *
+from ReLERNN.networks import *
 
 
 def relu(x):

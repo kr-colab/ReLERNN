@@ -4,9 +4,9 @@ Reads a VCF file, estimates simulation parameters, and runs simulates via msprim
 NOTE: This assumes that the user has previously QC'd and filtered the VCF.
 """
 
-from imports import *
-from simulator import *
-from helpers import *
+from ReLERNN.imports import *
+from ReLERNN.simulator import *
+from ReLERNN.helpers import *
 
 
 def check_demHist(path):

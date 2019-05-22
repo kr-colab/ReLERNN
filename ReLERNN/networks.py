@@ -2,7 +2,7 @@
 Authors: Jeff Adrion, Andrew Kern, Jared Galloway
 '''
 
-from Imports import *
+from ReLERNN.imports import *
 
 def GRU_TUNED84(x,y):
     '''

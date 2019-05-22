@@ -3,7 +3,7 @@ Author: Jared Galloway, Jeff Adrion
 
 '''
 
-from Imports import *
+from ReLERNN.imports import *
 
 class Simulator(object):
     '''

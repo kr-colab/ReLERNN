@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """Trains a network on data simulated by ReLERNN_SIMULATE.py"""
 
-from imports import *
-from simulator import *
-from helpers import *
-from sequenceBatchGenerator import *
-from networks import *
+from ReLERNN.imports import *
+from ReLERNN.simulator import *
+from ReLERNN.helpers import *
+from ReLERNN.sequenceBatchGenerator import *
+from ReLERNN.networks import *
 
 
 def main():

@@ -1,7 +1,7 @@
-SIMULATE="../ReLERNN_SIMULATE.py"
-TRAIN="../ReLERNN_TRAIN.py"
-PREDICT="../ReLERNN_PREDICT.py"
-BSCORRECT="../ReLERNN_BSCORRECT.py"
+SIMULATE="ReLERNN_SIMULATE"
+TRAIN="ReLERNN_TRAIN"
+PREDICT="ReLERNN_PREDICT"
+BSCORRECT="ReLERNN_BSCORRECT"
 CPU="4"
 MU="1e-8"
 RTR="1"
@@ -9,7 +9,7 @@ DIR="./example_output/"
 VCF="./example.vcf"
 
 # Simulate data
-python ${SIMULATE} \
+${SIMULATE} \
     --vcf ${VCF} \
     --projectDir ${DIR} \
     --assumedMu ${MU} \
@@ -20,18 +20,18 @@ python ${SIMULATE} \
     --nCPU ${CPU}
 
 # Train network
-python ${TRAIN} \
+${TRAIN} \
     --projectDir ${DIR} \
     --nEpochs 2 \
     --nValSteps 2
 
 # Predict
-python ${PREDICT} \
+${PREDICT} \
     --vcf ${VCF} \
     --projectDir ${DIR}
 
 # Parametric Bootstrapping
-python ${BSCORRECT} \
+${BSCORRECT} \
     --projectDir ${DIR} \
     --nCPU ${CPU} \
     --nSlice 10 \

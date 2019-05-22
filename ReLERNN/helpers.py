@@ -3,9 +3,9 @@
 Authors: Jared Galloway, Jeff Adrion
 '''
 
-from Imports import *
-from Simulator import *
-from SequenceBatchGenerator import *
+from ReLERNN.imports import *
+from ReLERNN.simulator import *
+from ReLERNN.sequenceBatchGenerator import *
 
 def relu(x):
     return max(0,x)

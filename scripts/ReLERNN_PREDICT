@@ -4,11 +4,11 @@ Predicts the recombination rate for all genomic windows along the chromosomes
 using a GRU network trained in ReLERNN_TRAIN.py
 """
 
-from imports import *
-from simulator import *
-from helpers import *
-from sequenceBatchGenerator import *
-from networks import *
+from ReLERNN.imports import *
+from ReLERNN.simulator import *
+from ReLERNN.helpers import *
+from ReLERNN.sequenceBatchGenerator import *
+from ReLERNN.networks import *
 
 
 def get_index(pos, winSize):

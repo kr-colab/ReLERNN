@@ -2,8 +2,8 @@
 Authors: Jared Galloway, Jeff Adrion
 '''
 
-from Imports import *
-from Helpers import *
+from ReLERNN.imports import *
+from ReLERNN.helpers import *
 
 class SequenceBatchGenerator(keras.utils.Sequence):
 
