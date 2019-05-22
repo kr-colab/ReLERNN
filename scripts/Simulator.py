@@ -3,9 +3,7 @@ Author: Jared Galloway, Jeff Adrion
 
 '''
 
-
 from Imports import *
-
 
 class Simulator(object):
     '''

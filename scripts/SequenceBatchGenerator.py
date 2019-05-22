@@ -244,7 +244,7 @@ class VCFBatchGenerator(keras.utils.Sequence):
         np.random.shuffle(t)
         return x[:,t]
 
-    def pad_HapsPosVCF(haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
+    def pad_HapsPosVCF(self,haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
         '''
         pads the haplotype and positions tensors
         to be uniform with the largest tensor
@@ -301,7 +301,7 @@ class VCFBatchGenerator(keras.utils.Sequence):
 
         if(self.maxLen != None):
             ##then we're probably padding
-            haps,pos,nSNPs = pad_HapsPosVCF(haps,pos,
+            haps,pos,nSNPs = self.pad_HapsPosVCF(haps,pos,
                 maxSNPs=self.maxLen,
                 frameWidth=self.frameWidth,
                 center=self.center)

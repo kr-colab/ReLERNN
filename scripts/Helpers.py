@@ -7,7 +7,6 @@ from Imports import *
 from Simulator import *
 from SequenceBatchGenerator import *
 
-
 def relu(x):
     return max(0,x)
 
@@ -81,10 +80,6 @@ def runModels(ModelFuncPointer,
 
     x,y = TrainGenerator.__getitem__(0)
     model = ModelFuncPointer(x,y)
-
-    callbacks = [EarlyStopping(monitor='val_loss',
-                              min_delta=0,
-                              patience=5)]
 
     history = model.fit_generator(TrainGenerator,
         steps_per_epoch= epochSteps,
@@ -218,85 +213,6 @@ def sort_min_diff(amat):
     return amat[v[1][smallest]]
 
 #-------------------------------------------------------------------------------------------
-
-#def pad_HapsPos(haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
-#    '''
-#    pads the haplotype and positions tensors
-#    to be uniform with the largest tensor
-#    '''
-#
-#    haps = haplotypes
-#    pos = positions
-#
-#    #Normalize the shape of all haplotype vectors with padding
-#    for i in range(len(haps)):
-#        numSNPs = haps[i].shape[0]
-#        paddingLen = maxSNPs - numSNPs
-#        if(center):
-#            prior = paddingLen // 2
-#            post = paddingLen - prior
-#            haps[i] = np.pad(haps[i],((prior,post),(0,0)),"constant",constant_values=2.0)
-#            pos[i] = np.pad(pos[i],(prior,post),"constant",constant_values=-1.0)
-#
-#        else:
-#            if(paddingLen < 0):
-#                haps[i] = np.pad(haps[i],((0,0),(0,0)),"constant",constant_values=2.0)[:paddingLen]
-#                pos[i] = np.pad(pos[i],(0,0),"constant",constant_values=-1.0)[:paddingLen]
-#            else:
-#                haps[i] = np.pad(haps[i],((0,paddingLen),(0,0)),"constant",constant_values=2.0)
-#                pos[i] = np.pad(pos[i],(0,paddingLen),"constant",constant_values=-1.0)
-#
-#    haps = np.array(haps,dtype='float32')
-#    pos = np.array(pos,dtype='float32')
-#
-#    if(frameWidth):
-#        fw = frameWidth
-#        haps = np.pad(haps,((0,0),(fw,fw),(fw,fw)),"constant",constant_values=2.0)
-#        pos = np.pad(pos,((0,0),(fw,fw)),"constant",constant_values=-1.0)
-#
-#    return haps,pos
-
-#-------------------------------------------------------------------------------------------
-
-#def pad_HapsPosVCF(haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
-#    '''
-#    pads the haplotype and positions tensors
-#    to be uniform with the largest tensor
-#    '''
-#
-#    haps = haplotypes
-#    pos = positions
-#
-#    nSNPs=[]
-#
-#    #Normalize the shape of all haplotype vectors with padding
-#    for i in range(len(haps)):
-#        numSNPs = haps[i].shape[0]
-#        nSNPs.append(numSNPs)
-#        paddingLen = maxSNPs - numSNPs
-#        if(center):
-#            prior = paddingLen // 2
-#            post = paddingLen - prior
-#            haps[i] = np.pad(haps[i],((prior,post),(0,0)),"constant",constant_values=2.0)
-#            pos[i] = np.pad(pos[i],(prior,post),"constant",constant_values=-1.0)
-#
-#        else:
-#            haps[i] = np.pad(haps[i],((0,paddingLen),(0,0)),"constant",constant_values=2.0)
-#            pos[i] = np.pad(pos[i],(0,paddingLen),"constant",constant_values=-1.0)
-#
-#    haps = np.array(haps,dtype='float32')
-#    pos = np.array(pos,dtype='float32')
-#
-#    if(frameWidth):
-#        fw = frameWidth
-#        haps = np.pad(haps,((0,0),(fw,fw),(fw,fw)),"constant",constant_values=2.0)
-#        pos = np.pad(pos,((0,0),(fw,fw)),"constant",constant_values=-1.0)
-#
-#
-#    return haps,pos,nSNPs
-
-#-------------------------------------------------------------------------------------------
-
 
 def mutateTrees(treesDirec,outputDirec,muLow,muHigh,numMutsPerTree=1,simulator="msprime"):
     '''

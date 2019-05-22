@@ -2,9 +2,7 @@
 Authors: Jeff Adrion, Andrew Kern, Jared Galloway
 '''
 
-
 from Imports import *
-
 
 def GRU_TUNED84(x,y):
     '''
