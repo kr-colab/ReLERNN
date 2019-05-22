@@ -1,17 +1,24 @@
-*ReLERNN*-
-**Recombination Landscape Estimation using Recurrent Neural Networks**
+*ReLERNN*
+*Recombination Landscape Estimation using Recurrent Neural Networks*
 ====================================================================
 
 ReLERNN uses deep learning to infer the genome-wide landscape of recombination from as few as two diploid samples.
 This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly.   
 
-## Recommended instalation on linux
-ReLERNN and all its dependencies can be installed via pip.
-Use the following commands to install ReLERNN:
-
+## Recommended installation on linux
+We recommend that you use pip to install ReLERNN and all of its dependencies.
+This is done with the following command:
 
 ```
 $ pip install ReLERNN
+```
+
+Alternatively, you can clone the directly from github and install via setup.py using the following commands: 
+
+```
+$ git clone https://github.com/kern-lab/ReLERNN.git
+$ cd ReLERNN
+$ python3 setup.py
 ```
 
 It should be as simple as that.
@@ -30,7 +37,7 @@ The latter is the finalized output file with your recombination rate estimates.
 
 The above example took X seconds to complete on a Xeon machine using four CPUs and one NVIDIA GeForce Titan X GPU.
 Note that the parameters used for this example were only designed to test the success of the installation, not to make accurate predictions.
-Please use guidlines below for the best results when analyzing real data.
+Please use guidelines below for the best results when analyzing real data.
 While it is possible to run ReLERNN without a dedicated GPU, if you do try this, you are going to have a bad time.
 
 
