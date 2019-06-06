@@ -20,7 +20,7 @@ Alternatively, you can clone the directly from github and install via setup.py u
 ```
 $ git clone https://github.com/kern-lab/ReLERNN.git
 $ cd ReLERNN
-$ pip install .
+$ python setup.py install
 ```
 
 It should be as simple as that.
