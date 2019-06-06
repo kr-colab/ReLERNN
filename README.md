@@ -44,19 +44,21 @@ While it is possible to run ReLERNN without a dedicated GPU, if you do try this,
 
 ## Estimating a recombination landscape using ReLERNN
 
-The ReLERNN pipeline is executed using four commands: ReLERNN_SIMULATE, ReLERNN_TRAIN, ReLERNN_PREDICT, and ReLERNN_BSCORRECT (see the [Method flow diagram](./methodFlow.png)).
+The ReLERNN pipeline is executed using four commands: `ReLERNN_SIMULATE`, `ReLERNN_TRAIN`, `ReLERNN_PREDICT`, and `ReLERNN_BSCORRECT` (see the [Method flow diagram](./methodFlow.png)).
 
 ### Before running ReLERNN
 ReLERNN takes as input a phased VCF file of biallelic variants. It is critical that multi-allelic sites and missing/masked data are filtered from the VCF before running ReLERNN. Additionally, users should use appropriate QC techniques (filtering low-quality variants, etc.) before running ReLERNN.
 
-If you want to make predictions based on equilibrium simulations, you can skip ahead to executing ReLERNN_SIMULATE.
-While ReLERNN is generally robust to demographic model misspecification, you will improve the accuracy of your predictions if you simulate the training set under a demographic history that actually matches that of your sample. ReLERNN optionally takes the raw output files from three popular demographic history inference programs ([stairwayplot_v1](https://sites.google.com/site/jpopgen/stairway-plot), [SMC++](https://github.com/popgenmethods/smcpp), and [MSMC](https://github.com/stschiff/msmc)), and simulates a training set under these histories. It is up to the user to perform the proper due diligence to ensure that the population size histories reported by these programs are sound. In our opinion, unless you know exactly how these programs work and you expect your data to represent a history dramatically different from equilibrium, you are better off skipping this step and training ReLERNN on equilibrium simulations. Once you have used one of the demographic history inference programs listed here, you simply provide the raw output file to ReLERNN_SIMULATE using the -n option.
+If you want to make predictions based on equilibrium simulations, you can skip ahead to executing `ReLERNN_SIMULATE`.
+While ReLERNN is generally robust to demographic model misspecification, you will improve the accuracy of your predictions if you simulate the training set under a demographic history that accurately matches that of your sample. ReLERNN optionally takes the raw output files from three popular demographic history inference programs ([stairwayplot_v1](https://sites.google.com/site/jpopgen/stairway-plot), [SMC++](https://github.com/popgenmethods/smcpp), and [MSMC](https://github.com/stschiff/msmc)), and simulates a training set under these histories. It is up to the user to perform the proper due diligence to ensure that the population size histories reported by these programs are sound. In our opinion, unless you know exactly how these programs work and you expect your data to represent a history dramatically different from equilibrium, you are better off skipping this step and training ReLERNN on equilibrium simulations. Once you have run one of the demographic history inference programs listed above, you simply provide the raw output file from that program to ReLERNN_SIMULATE using the `--demographicHistory` option.
 
 
 ### Step 1) ReLERNN_SIMULATE
+`ReLERNN_SIMULATE` reads your VCF file, splits it by chromosome, and then calculates Watterson's theta to arrive at  appropriate simlulation parameters. Users are required to provide an estimate of the per-base mutation rate for your sample, along with an estimate for generation time (in years). If you previously ran one of the demographic history inference programs listed above, just use the same values that you used for them. This is also where you will point to the output from said program, using `--demographicHistory`. If you are not simulating under an inferred history, simply do not include this option. Importantly, you can also set a value for the maximum recombination rate to be simulated using `--upperRhoThetaRatio`. If you have an a priori estimate for an upper bound to the ratio of rho to theta go ahead and set this here. Keep in mind that higher values of recombination will dramatically slow the coalescent simulations. We recommend using the default number of train/test/validation simulation examples, but if you want to simulate more examples, go right ahead. `ReLERNN_SIMULATE` then uses msprime to simulate 100k training examples and 1k validation and test examples. All output files will be generated in subdirectories within the path provided to `--projectDir`. Note: It is required that you use the same projectDir for all four ReLERNN commands. If you want to run ReLERNN of multiple populations/taxa, you can run them independently using a unique projectDir for each.  
+
 ```
 ReLERNN_SIMULATE -h
-Using TensorFlow backend.
+
 usage: ReLERNN_SIMULATE [-h] [-v VCF] [-d OUTDIR] [-n DEM] [-m MU]
                         [-g GENTIME] [-r UPRTR] [--nTrain NTRAIN]
                         [--nVali NVALI] [--nTest NTEST] [-t NCPU]
