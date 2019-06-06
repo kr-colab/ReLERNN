@@ -22,7 +22,7 @@ setup(name='ReLERNN',
             "matplotlib",
             "sklearn",
             "keras",
-            "tensorflow"],
+            "tensorflow-gpu"],
       scripts=[
             "ReLERNN/ReLERNN_SIMULATE",
             "ReLERNN/ReLERNN_TRAIN",
