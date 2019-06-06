@@ -43,4 +43,4 @@ Please use the guidelines below for the best results when analyzing real data.
 While it is possible to run ReLERNN without a dedicated GPU, if you do try this, you are going to have a bad time.
 
 ## Estimating a recombination landscape using ReLERNN
-[Method flow](flowfig.png)
+[Method flow](./flowfig.png)
