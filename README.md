@@ -1,5 +1,5 @@
-*ReLERNN*
-*Recombination Landscape Estimation using Recurrent Neural Networks*
+# *ReLERNN*
+## *Recombination Landscape Estimation using Recurrent Neural Networks*
 ====================================================================
 
 ReLERNN uses deep learning to infer the genome-wide landscape of recombination from as few as two diploid samples.
