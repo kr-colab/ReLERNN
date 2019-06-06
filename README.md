@@ -15,7 +15,7 @@ This is done with the following command:
 $ pip install ReLERNN
 ```
 
-Alternatively, you can clone the directly from github and install via setup.py using the following commands: 
+Alternatively, you can clone directly from github and install via setup.py using the following commands: 
 
 ```
 $ git clone https://github.com/kern-lab/ReLERNN.git
@@ -35,10 +35,12 @@ $ ./example_pipeline.sh
 ```
 
 Provided everything worked as planned, $ReLERNN/examples/example_output/ should be populated with a few directories along with the files: example.PREDICT.txt and example.PREDICT.BSCORRECT.txt.
-The latter is the finalized output file with your recombination rate estimates.
+The latter is the finalized output file with your recombination rate predictions and estimates of uncertainty.
 
 The above example took 57 seconds to complete on a Xeon machine using four CPUs and one NVIDIA 2070 GPU.
-Note that the parameters used for this example were only designed to test the success of the installation, not to make accurate predictions.
-Please use guidelines below for the best results when analyzing real data.
+Note that the parameters used for this example were designed only to test the success of the installation, not to make accurate predictions.
+Please use the guidelines below for the best results when analyzing real data.
 While it is possible to run ReLERNN without a dedicated GPU, if you do try this, you are going to have a bad time.
 
+## Estimating a recombination landscape using ReLERNN
+[Method flow](flowfig.png)
