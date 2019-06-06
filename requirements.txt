@@ -1,0 +1,8 @@
+msprime
+numpy>=1.16.0
+h5py
+scikit-allel
+matplotlib
+sklearn
+keras
+tensorflow==1.13.1
