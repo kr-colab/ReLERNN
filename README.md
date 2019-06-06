@@ -18,7 +18,7 @@ Alternatively, you can clone the directly from github and install via setup.py u
 ```
 $ git clone https://github.com/kern-lab/ReLERNN.git
 $ cd ReLERNN
-$ python3 setup.py install
+$ pip install .
 ```
 
 It should be as simple as that.
