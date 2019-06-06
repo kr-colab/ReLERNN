@@ -6,7 +6,9 @@ ReLERNN uses deep learning to infer the genome-wide landscape of recombination f
 This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly.   
 
 ## Recommended installation on linux
-We recommend that you use pip to install ReLERNN and all of its dependencies.
+Install `tensorflow-gpu` on your system. Directions can be found [here](https://www.tensorflow.org/install/gpu). We recommend using tensorflow version 1.13.1. You will need to install the CUDA toolkit and CuDNN as well as mentioned in the docs above.
+
+Further dependencies for ReLERNN can be installed with pip.
 This is done with the following command:
 
 ```
