@@ -26,7 +26,7 @@ $ python setup.py install
 It should be as simple as that.
 
 ## Testing ReLERNN
-An example VCF file (10 haploid samples) and a shell script for running ReLERNN's four modules is located in $/ReLERNN/examples.
+An example VCF file (10 haploid samples) and a shell script for running ReLERNN's four modules is located in `$/ReLERNN/examples`.
 To test the functionality of ReLERNN simply use the following commands:
 
 ```
@@ -34,7 +34,7 @@ $ cd examples
 $ ./example_pipeline.sh
 ```
 
-Provided everything worked as planned, $ReLERNN/examples/example_output/ should be populated with a few directories along with the files: example.PREDICT.txt and example.PREDICT.BSCORRECT.txt.
+Provided everything worked as planned, `$ReLERNN/examples/example_output/` should be populated with a few directories along with the files: `example.PREDICT.txt` and `example.PREDICT.BSCORRECT.txt`.
 The latter is the finalized output file with your recombination rate predictions and estimates of uncertainty.
 
 The above example took 57 seconds to complete on a Xeon machine using four CPUs and one NVIDIA 2070 GPU.
@@ -54,7 +54,7 @@ While ReLERNN is generally robust to demographic model misspecification, you wil
 
 
 ### Step 1) ReLERNN_SIMULATE
-`ReLERNN_SIMULATE` reads your VCF file, splits it by chromosome, and then calculates Watterson's theta to arrive at appropriate simulation parameters. The VCF file must have the extension `.vcf`. Moreover, the prefix of that file will serve as the prefix used for all output files (e.g. running ReLERNN on the file `population7.vcf` will generate the result file `population7.PREDICT.txt`). Users are required to provide an estimate of the per-base mutation rate for your sample, along with an estimate for generation time (in years). If you previously ran one of the demographic history inference programs listed above, just use the same values that you used for them. This is also where you will point to the output from said program, using `--demographicHistory`. If you are not simulating under an inferred history, simply do not include this option. Importantly, you can also set a value for the maximum recombination rate to be simulated using `--upperRhoThetaRatio`. If you have an a priori estimate for an upper bound to the ratio of rho to theta go ahead and set this here. Keep in mind that higher values of recombination will dramatically slow the coalescent simulations. We recommend using the default number of train/test/validation simulation examples, but if you want to simulate more examples, go right ahead. `ReLERNN_SIMULATE` then uses msprime to simulate 100k training examples and 1k validation and test examples. All output files will be generated in subdirectories within the path provided to `--projectDir`. Note: It is required that you use the same projectDir for all four ReLERNN commands. If you want to run ReLERNN of multiple populations/taxa, you can run them independently using a unique projectDir for each.  
+`ReLERNN_SIMULATE` reads your VCF file, splits it by chromosome, and then calculates Watterson's theta to arrive at appropriate simulation parameters. The VCF file must have the extension `.vcf`. Moreover, the prefix of that file will serve as the prefix used for all output files (e.g. running ReLERNN on the file `population7.vcf` will generate the result file `population7.PREDICT.txt`). Users are required to provide an estimate of the per-base mutation rate for your sample, along with an estimate for generation time (in years). If you previously ran one of the demographic history inference programs listed above, just use the same values that you used for them. This is also where you will point to the output from said program, using `--demographicHistory`. If you are not simulating under an inferred history, simply do not include this option. Importantly, you can also set a value for the maximum recombination rate to be simulated using `--upperRhoThetaRatio`. If you have an a priori estimate for an upper bound to the ratio of rho to theta go ahead and set this here. Keep in mind that higher values will dramatically slow the coalescent simulations. We recommend using the default number of train/test/validation simulation examples, but if you want to simulate more examples, go right ahead. `ReLERNN_SIMULATE` then uses msprime to simulate 100k training examples and 1k validation and test examples. All output files will be generated in subdirectories within the path provided to `--projectDir`. Note: It is required that you use the same projectDir for all four ReLERNN commands. If you want to run ReLERNN of multiple populations/taxa, you can run them independently using a unique projectDir for each.  
 
 The complete list of options used in `ReLERNN_SIMULATE` are found below:
 ```
