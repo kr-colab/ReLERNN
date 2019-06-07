@@ -94,7 +94,6 @@ The complete list of options used in `ReLERNN_TRAIN` are found below:
 ```
 ReLERNN_TRAIN -h
 
-usage: ReLERNN_TRAIN [-h] [Using TensorFlow backend.
 usage: ReLERNN_TRAIN [-h] [--projectDir OUTDIR] [--nEpochs NEPOCHS]
                      [--nValSteps NVALSTEPS] [--gpuID GPUID]
 
@@ -135,7 +134,7 @@ Wait, did I say you were done? If you have done everything correct up to this po
 
 The complete list of options used in `ReLERNN_BSCORRECT` are found below:
 ```
- ReLERNN_BSCORRECT -h
+ReLERNN_BSCORRECT -h
 
 usage: ReLERNN_BSCORRECT [-h] [--projectDir OUTDIR] [--gpuID GPUID]
                          [--nSlice NSLICE] [--nReps NREPS] [--nCPU NCPU]
