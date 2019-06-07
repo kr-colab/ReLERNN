@@ -54,8 +54,9 @@ While ReLERNN is generally robust to demographic model misspecification, you wil
 
 
 ### Step 1) ReLERNN_SIMULATE
-`ReLERNN_SIMULATE` reads your VCF file, splits it by chromosome, and then calculates Watterson's theta to arrive at  appropriate simlulation parameters. Users are required to provide an estimate of the per-base mutation rate for your sample, along with an estimate for generation time (in years). If you previously ran one of the demographic history inference programs listed above, just use the same values that you used for them. This is also where you will point to the output from said program, using `--demographicHistory`. If you are not simulating under an inferred history, simply do not include this option. Importantly, you can also set a value for the maximum recombination rate to be simulated using `--upperRhoThetaRatio`. If you have an a priori estimate for an upper bound to the ratio of rho to theta go ahead and set this here. Keep in mind that higher values of recombination will dramatically slow the coalescent simulations. We recommend using the default number of train/test/validation simulation examples, but if you want to simulate more examples, go right ahead. `ReLERNN_SIMULATE` then uses msprime to simulate 100k training examples and 1k validation and test examples. All output files will be generated in subdirectories within the path provided to `--projectDir`. Note: It is required that you use the same projectDir for all four ReLERNN commands. If you want to run ReLERNN of multiple populations/taxa, you can run them independently using a unique projectDir for each.  
+`ReLERNN_SIMULATE` reads your VCF file, splits it by chromosome, and then calculates Watterson's theta to arrive at appropriate simulation parameters. The VCF file must have the extension `.vcf`. Moreover, the prefix of that file will serve as the prefix used for all output files (e.g. running ReLERNN on the file `population7.vcf` will generate the result file `population7.PREDICT.txt`). Users are required to provide an estimate of the per-base mutation rate for your sample, along with an estimate for generation time (in years). If you previously ran one of the demographic history inference programs listed above, just use the same values that you used for them. This is also where you will point to the output from said program, using `--demographicHistory`. If you are not simulating under an inferred history, simply do not include this option. Importantly, you can also set a value for the maximum recombination rate to be simulated using `--upperRhoThetaRatio`. If you have an a priori estimate for an upper bound to the ratio of rho to theta go ahead and set this here. Keep in mind that higher values of recombination will dramatically slow the coalescent simulations. We recommend using the default number of train/test/validation simulation examples, but if you want to simulate more examples, go right ahead. `ReLERNN_SIMULATE` then uses msprime to simulate 100k training examples and 1k validation and test examples. All output files will be generated in subdirectories within the path provided to `--projectDir`. Note: It is required that you use the same projectDir for all four ReLERNN commands. If you want to run ReLERNN of multiple populations/taxa, you can run them independently using a unique projectDir for each.  
 
+The complete list of options used in `ReLERNN_SIMULATE` are found below:
 ```
 ReLERNN_SIMULATE -h
 
@@ -84,3 +85,69 @@ optional arguments:
   --nTest NTEST         Number of test examples to simulate
   -t NCPU, --nCPU NCPU  Number of CPUs to use
 ```
+
+
+### Step 2) ReLERNN_TRAIN
+`ReLERNN_TRAIN` takes the simulations created by `ReLERNN_SIMULATE` and uses them to train a recurrent neural network. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analyis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/vcfprefix.pdf`.
+
+The complete list of options used in `ReLERNN_TRAIN` are found below:
+```
+ReLERNN_TRAIN -h
+
+usage: ReLERNN_TRAIN [-h] [Using TensorFlow backend.
+usage: ReLERNN_TRAIN [-h] [--projectDir OUTDIR] [--nEpochs NEPOCHS]
+                     [--nValSteps NVALSTEPS] [--gpuID GPUID]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --projectDir OUTDIR   Directory for all project output. NOTE: the same
+                        projectDir must be used for all functions of ReLERNN
+  --nEpochs NEPOCHS     Number of epochs to train over
+  --nValSteps NVALSTEPS
+                        Number of validation steps
+  --gpuID GPUID         Identifier specifying which GPU to use
+```
+
+
+
+### Step 3) ReLERNN_PREDICT
+`ReLERNN_PREDICT` now takes the same VCF file you used in `ReLERNN_SIMULATE` and predicts per-base recombination rates in non-overlapping windows across the genome. The output file of predictions will be created as `$/projectDir/vcfprefix.PREDICT.txt`. It is important to note that the window size used for predictions might be different for different chromosomes. A complete list of the window sizes used for each chromosome can be found in third column of `$/projectDir/networks/windowSizes.txt`. Technically, you are now done and you can go back to sipping your delicious pFriem IPA.
+
+
+The complete list of options used in `ReLERNN_PREDICT` are found below:
+```
+ReLERNN_PREDICT -h
+
+usage: ReLERNN_PREDICT [-h] [--vcf VCF] [--projectDir OUTDIR] [--gpuID GPUID]
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --vcf VCF            Filtered and QC-checked VCF file Note: Every row must
+                       correspond to a biallelic SNP with no missing data)
+  --projectDir OUTDIR  Directory for all project output. NOTE: the same
+                       projectDir must be used for all functions of ReLERNN
+  --gpuID GPUID        Identifier specifying which GPU to use
+```
+
+### Optional Step 4) ReLERNN_BSCORRECT
+Wait, did I say you were done? If you have done everything correct up to this point, the results from `ReLERNN_PREDICT` will hopefully be pretty good. However, you might want to have an idea of the uncertaintly around your predictions. This is where `ReLERNN_BSCORRECT` comes in. `ReLERNN_BSCORRECT` generates 95% confidence intervals around each prediction, and additionally attempts to correct for systematic bias. It does this by simulated a set of `--nReps` examples at each of `nSlice` recombination rate bins. It then uses the network that was trained in `ReLERNN_TRAIN` and estimates the distribution of predictions around each know recombination rate. The result is both an estimate of uncertainty and a prediction that has been slighly corrected to account for bias in how the network is makes predictions in this area of parameter space. The resulting file is created as `$/projectDir/vcfprefix.PREDICT.BSCORRECT.txt`, and is formatted similarly to `$/projectDir/vcfprefix.PREDICT.txt` with the addition of columns for the low and high 95CI bounds. Now get back to that beer.
+
+
+The complete list of options used in `ReLERNN_BSCORRECT` are found below:
+```
+ ReLERNN_BSCORRECT -h
+
+usage: ReLERNN_BSCORRECT [-h] [--projectDir OUTDIR] [--gpuID GPUID]
+                         [--nSlice NSLICE] [--nReps NREPS] [--nCPU NCPU]
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --projectDir OUTDIR  Directory for all project output. NOTE: the same
+                       projectDir must be used for all functions of ReLERNN
+  --gpuID GPUID        Identifier specifying which GPU to use
+  --nSlice NSLICE      Number of recombination rate bins to simulate over
+  --nReps NREPS        Number of simulations per step
+  --nCPU NCPU          Number of CPUs to use
+```
+
+
