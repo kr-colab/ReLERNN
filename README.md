@@ -40,7 +40,7 @@ The latter is the finalized output file with your recombination rate predictions
 The above example took 57 seconds to complete on a Xeon machine using four CPUs and one NVIDIA 2070 GPU.
 Note that the parameters used for this example were designed only to test the success of the installation, not to make accurate predictions.
 Please use the guidelines below for the best results when analyzing real data.
-While it is possible to run ReLERNN without a dedicated GPU, if you do try this, you are going to have a bad time.
+ReLERNN currently requires the use of a CUDA-Enabled NVIDIA GPU. A workaround that supports CPU-based training is underway.
 
 ## Estimating a recombination landscape using ReLERNN
 
