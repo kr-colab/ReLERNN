@@ -98,17 +98,55 @@ def find_win_size(winSize,pos,step):
     snpsWin=snps_per_win(pos,winSize)
     mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
     if mx <= 1600:
+        q
         return [winSize,mn,u,mx,len(snpsWin)]
     else:
         return [mn,u,mx]
 
 
+def maskProp(chrom, a, L, mask):
+    """
+    return a two-element list with the first element being the total proportion of the window that is masked and
+    the second element being a list of masked positions that are relative to the windown start=0 and the window end = window length
+    """
+    b = a + L
+    prop = [0.0,[]]
+    for i in range(len(mask[chrom])):
+        x, y = mask[chrom][i][0], mask[chrom][i][1]
+        if b < x:
+            return prop
+        if y < a:
+            continue
+        else:
+            # i.e. they overlap
+            if a >= x and b <= y:
+                return [1.0, [[0,L]]]
+            elif a >= x and b > y:
+                win_prop = (y-a)/float(b-a)
+                prop[0] += win_prop 
+                prop[1].append([0,int(win_prop * L)])
+            elif b <= y and a < x:
+                win_prop = (b-x)/float(b-a)
+                prop[0] += win_prop
+                prop[1].append([int((1-win_prop)*L),L])
+            elif x > a and b > y:
+                win_prop = (y-x)/float(b-a)
+                prop[0] += win_prop
+                prop[1].append([int(((x-a)/float(b-a))*L), int(((y-a)/float(b-a))*L)])
+    return prop
+
+
+def mean(L):
+    return sum(L)/float(len(L))
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file Note: Every row must correspond to a biallelic SNP with no missing data)')
+    parser.add_argument('-m','--mask',dest='mask',help='genome-wide accessability mask (non-overlapping bed format)', default=None)
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
     parser.add_argument('-n','--demographicHistory',dest='dem',help='Output file from either stairwayplot, SMC++, or MSMC',default=0)
-    parser.add_argument('-m','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
+    parser.add_argument('-u','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
     parser.add_argument('-g','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
     parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Upper bound for the assumed ratio between rho and theta',type=float,default=10)
     parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)
@@ -227,7 +265,7 @@ def main():
                 ## Identify ideal training parameters
                 print("Finding best window size for chromosome: %s..." %(chroms[0]))
                 step=1000
-                winSize=100000
+                winSize=500000
                 while winSize > 0:
                     ip = find_win_size(winSize,pos,step)
                     if len(ip) != 5:
@@ -257,23 +295,56 @@ def main():
         sys.exit(1)
 
 
+    ## Read accessability mask
+    mask={}
+    if args.mask:
+        with open(args.mask, "r") as fIN:
+            for line in fIN:
+                ar = line.split()
+                try:
+                    mask[ar[0]].append([int(pos) for pos in ar[1:]])
+                except KeyError:
+                    mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
+
+
+        ## Calculate proportion masked sites for each window
+        win_masks = []
+        mask_proportions = []
+        with open(winFILE, "r") as fIN:
+            for line in fIN:
+                ar = line.split()
+                win_chrom = ar[0]
+                win_len = int(ar[2])
+                win_ct = int(ar[6])
+                start = 0
+                for i in range(win_ct):
+                    M = maskProp(win_chrom, start, win_len, mask)
+                    mask_proportions.append(M[0])
+                    win_masks.append(M[1])
+                    start += win_len
+
+    
     ## Define parameters for msprime simulation
+    if not mask:
+        mask_proportions = [0]
+        win_masks = None
     nSamps=nSam[0]
     a=0
     for i in range(nSamps-1):
         a+=1/(i+1)
     theta=maxMean/a
     assumedMu = args.mu
-    Ne=int(theta/(4.0 * assumedMu * maxLen))
+    Ne=int(theta/(4.0 * assumedMu * ((1-mean(mask_proportions)) * maxLen)))
     rhoHi=assumedMu*args.upRTR
     if demHist:
         MspD = convert_demHist(args.dem, nSamps, args.genTime, demHist)
         dg_params = {
                 'priorLowsRho':0.0,
                 'priorHighsRho':rhoHi,
-                'priorLowsMu':assumedMu * 0.75,
-                'priorHighsMu':assumedMu * 1.25,
+                'priorLowsMu':assumedMu * 0.5,
+                'priorHighsMu':assumedMu * 1.5,
                 'ChromosomeLength':maxLen,
+                'winMasks':win_masks,
                 'MspDemographics': MspD
                   }
 
@@ -282,9 +353,10 @@ def main():
             'Ne': Ne,
             'priorLowsRho':0.0,
             'priorHighsRho':rhoHi,
-            'priorLowsMu':assumedMu * 0.75,
-            'priorHighsMu':assumedMu * 1.25,
-            'ChromosomeLength':maxLen
+            'priorLowsMu':assumedMu * 0.5,
+            'priorHighsMu':assumedMu * 1.5,
+            'ChromosomeLength':maxLen,
+            'winMasks':win_masks
                   }
 
     # Assign pars for each simulation

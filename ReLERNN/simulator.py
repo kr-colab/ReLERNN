@@ -33,7 +33,8 @@ class Simulator(object):
         priorHighsRho = 1e-7,
         priorHighsMu = 1e-8,
         ChromosomeLength = 1e5,
-        MspDemographics = None
+        MspDemographics = None,
+        winMasks = None
         ):
 
         self.N = N
@@ -47,6 +48,7 @@ class Simulator(object):
         self.rho = None
         self.mu = None
         self.segSites = None
+        self.winMasks = winMasks
 
     def runOneMsprimeSim(self,simNum,direc):
         '''
@@ -83,6 +85,12 @@ class Simulator(object):
         H = ts.genotype_matrix()
         P = np.array([s.position for s in ts.sites()],dtype='float32')
 
+        # Sample from the mask distribution and mask positions and genotypes
+        if self.winMasks:
+            rand_mask = self.winMasks[random.randint(0,len(self.winMasks)-1)]
+            if rand_mask:
+                H,P = self.maskGenotypes(H, P, rand_mask)
+
         # Dump
         Hname = str(simNum) + "_haps.npy"
         Hpath = os.path.join(direc,Hname)
@@ -92,8 +100,20 @@ class Simulator(object):
         np.save(Ppath,P)
 
         # Return number of sites
-        ns = ts.num_sites
-        return ns
+        return len(H)
+
+
+    def maskGenotypes(self, H, P, rand_mask):
+        """
+        Return the genotype and position matrices where masked sites have been removed
+        """
+        mask = [True for site in P]
+        for i in range(len(P)):
+            for mask_win in rand_mask:
+                if mask_win[0] <= P[i] <= mask_win[1]:
+                    mask[i] = False
+        mask = np.array(mask)
+        return H[mask], P[mask]
 
 
     def simulateAndProduceTrees(self,direc,numReps,simulator,nProc=1):
@@ -129,7 +149,7 @@ class Simulator(object):
         result_q = mp.Queue()
         params=[simulator, direc]
 
-        # do the work boyeeee!
+        # do the work
         print("Simulate...")
         pids = self.create_procs(nProc, task_q, result_q, params)
         self.assign_task(mpID, task_q, nProc)
@@ -151,8 +171,8 @@ class Simulator(object):
 
         for p in pids:
             p.terminate()
-
         return None
+
 
     def assign_task(self, mpID, task_q, nProcs):
         c,i,nth_job=0,0,1
@@ -177,6 +197,7 @@ class Simulator(object):
             p.start()
             pids.append(p)
         return pids
+
 
     def worker(self, task_q, result_q, params):
         while True:

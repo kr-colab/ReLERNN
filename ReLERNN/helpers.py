@@ -26,6 +26,7 @@ def zscoreTargets(self):
 def load_and_predictVCF(VCFGenerator,
             resultsFile=None,
             network=None,
+            minS = 50,
             gpuID = 0):
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
@@ -50,7 +51,7 @@ def load_and_predictVCF(VCFGenerator,
         ct=0
         fOUT.write("%s\t%s\t%s\t%s\n" %("chrom","start","end","recombRate"))
         for i in range(len(predictions)):
-            if nSNPs[i] >= 20:
+            if nSNPs[i] >= minS:
                 fOUT.write("%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,relu(sd*predictions[i][0]+u)))
             ct+=win
 
