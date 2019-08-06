@@ -94,11 +94,10 @@ def snps_per_win(pos, window_size):
     return y
 
 
-def find_win_size(winSize,pos,step):
+def find_win_size(winSize,pos,step,winSizeMx):
     snpsWin=snps_per_win(pos,winSize)
     mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
-    if mx <= 1600:
-        q
+    if mx <= winSizeMx:
         return [winSize,mn,u,mx,len(snpsWin)]
     else:
         return [mn,u,mx]
@@ -149,6 +148,7 @@ def main():
     parser.add_argument('-u','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
     parser.add_argument('-g','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
     parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Upper bound for the assumed ratio between rho and theta',type=float,default=10)
+    parser.add_argument('--winSizeMx',dest='winSizeMx',help='Max number of sites per window, averaged across the genome',type=int,default=1750)
     parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)
     parser.add_argument('--nVali',dest='nVali',help='Number of validation examples to simulate',type=int,default=1000)
     parser.add_argument('--nTest',dest='nTest',help='Number of test examples to simulate',type=int,default=1000)
@@ -174,6 +174,8 @@ def main():
     else:
         print("Warning: no demographic history file found. All training data will be simulated under demographic equilibrium.")
         demHist = 0
+    if not args.mask:
+        print("Warning: no accessibility mask found. All sites in the genome are assumed to be accessible.") 
 
 
     ## Set up the directory structure to store the simulations data.
@@ -267,7 +269,7 @@ def main():
                 step=1000
                 winSize=500000
                 while winSize > 0:
-                    ip = find_win_size(winSize,pos,step)
+                    ip = find_win_size(winSize,pos,step,args.winSizeMx)
                     if len(ip) != 5:
                         winSize-=step
                     else:
@@ -285,9 +287,13 @@ def main():
     nSam=[]
     maxMean=0
     maxLen=0
+    maxMax=0
+    maxMin=0
     for i in range(len(wins)):
-        maxMean=max([maxMean,wins[i][4]])
         maxLen=max([maxLen,wins[i][2]])
+        maxMin=max([maxMin,wins[i][3]])
+        maxMean=max([maxMean,wins[i][4]])
+        maxMax=max([maxMax,wins[i][5]])
         nSam.append(wins[i][1])
     if len(set(nSam)) > 1:
         print(set(nSam))
@@ -306,7 +312,6 @@ def main():
                 except KeyError:
                     mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
 
-
         ## Calculate proportion masked sites for each window
         win_masks = []
         mask_proportions = []
@@ -322,9 +327,10 @@ def main():
                     mask_proportions.append(M[0])
                     win_masks.append(M[1])
                     start += win_len
+        print("Accessibility mask found: {}% of genome inaccessible.".format(round(mean(mask_proportions)*100,1)))
 
-    
     ## Define parameters for msprime simulation
+    print("Simulating with window size = {} bp.".format(maxLen))
     if not mask:
         mask_proportions = [0]
         win_masks = None
@@ -332,17 +338,21 @@ def main():
     a=0
     for i in range(nSamps-1):
         a+=1/(i+1)
-    theta=maxMean/a
+    thetaMean=maxMean/a
+    thetaMin=maxMin/a
+    thetaMax=maxMax/a
     assumedMu = args.mu
-    Ne=int(theta/(4.0 * assumedMu * ((1-mean(mask_proportions)) * maxLen)))
+    Ne=int(thetaMean/(4.0 * assumedMu * ((1-mean(mask_proportions)) * maxLen)))
     rhoHi=assumedMu*args.upRTR
+    muMin=thetaMin/(4.0 * Ne * ((1-mean(mask_proportions)) * maxLen))
+    muMax=thetaMax/(4.0 * Ne * ((1-mean(mask_proportions)) * maxLen))
     if demHist:
         MspD = convert_demHist(args.dem, nSamps, args.genTime, demHist)
         dg_params = {
                 'priorLowsRho':0.0,
                 'priorHighsRho':rhoHi,
-                'priorLowsMu':assumedMu * 0.5,
-                'priorHighsMu':assumedMu * 1.5,
+                'priorLowsMu':assumedMu * 0.66,
+                'priorHighsMu':assumedMu * 1.33,
                 'ChromosomeLength':maxLen,
                 'winMasks':win_masks,
                 'MspDemographics': MspD
@@ -353,11 +363,12 @@ def main():
             'Ne': Ne,
             'priorLowsRho':0.0,
             'priorHighsRho':rhoHi,
-            'priorLowsMu':assumedMu * 0.5,
-            'priorHighsMu':assumedMu * 1.5,
+            'priorLowsMu':assumedMu * 0.66,
+            'priorHighsMu':assumedMu * 1.33,
             'ChromosomeLength':maxLen,
             'winMasks':win_masks
                   }
+
 
     # Assign pars for each simulation
     dg_train = Simulator(**dg_params)

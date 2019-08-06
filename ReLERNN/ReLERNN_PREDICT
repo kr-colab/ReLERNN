@@ -21,28 +21,14 @@ def get_index(pos, winSize):
     return indices
 
 
-def snps_per_win(pos, window_size):
-    bins = np.arange(1, pos.max()+window_size, window_size) #use 1-based coordinates, per VCF standard
-    y,x = np.histogram(pos,bins=bins)
-    return y
-
-
-def find_win_size(winSize,pos):
-    snpsWin=snps_per_win(pos,winSize)
-    mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
-    if mx <= 1600:
-        return [winSize,mn,u,mx,len(snpsWin)]
-    else:
-        return [mn,u,mx]
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--vcf',dest='vcf',help='filtered and qc-checked vcf file note: every row must correspond to a biallelic snp with no missing data)')
     parser.add_argument('--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
-    parser.add_argument('--minSites',dest='minS',help='minimum number of sites in a window to generate a prediction', type=int, default = 50)
+    parser.add_argument('--minSites',dest='minS',help='minimum number of sites in a window required to return a prediction', type=int, default = 50)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default = 0)
     args = parser.parse_args()
+
 
     ## Set up the directory structure to store the simulations data.
     DataDir = args.outDir
@@ -110,7 +96,7 @@ def main():
         ## Identify parameters used to train
         DsInfoDir = pickle.load(open(os.path.join(trainDir,"info.p"),"rb"))
         winSize=wins[i][2]
-        ip=find_win_size(winSize,pos)
+        batchSize=wins[i][4]
 
 
         ## Set network parameters
@@ -121,7 +107,7 @@ def main():
             'IDs':get_index(pos,winSize),
             'GT':genos,
             'POS':pos,
-            'batchSize': ip[4],
+            'batchSize': batchSize,
             'maxLen': maxSegSites,
             'frameWidth': 5,
             'sortInds':False,
