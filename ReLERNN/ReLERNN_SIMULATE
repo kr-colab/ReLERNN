@@ -99,11 +99,11 @@ def main():
     
     ## Prepare the accessibility mask
     if args.mask:
-        mask_fraction, win_masks = file_manager.maskWins(nProc=nProc)
+        mask_fraction, win_masks = file_manager.maskWins(wins=wins, maxLen=maxLen, nProc=nProc)
     else:
         mask_fraction, win_masks = 0.0, None
 
-    sys.exit()
+    
     ## Define parameters for msprime simulation
     print("Simulating with window size = {} bp.".format(maxLen))
     a=0
@@ -146,7 +146,7 @@ def main():
     ## Dump simulation pars for use with parametric bootstrap
     simParsFILE=os.path.join(networkDir,"simPars.p")
     with open(simParsFILE, "wb") as fOUT:
-        dg_params["bn"]=bn.replace(".vcf","")
+        dg_params["bn"]=os.path.basename(args.vcf).replace(".vcf","")
         pickle.dump(dg_params,fOUT)
 
 
@@ -176,10 +176,10 @@ def main():
     ## Compare counts of segregating sites between simulations and input VCF
     print("SANITY CHECK")
     print("====================")
-    print("numSegSites\tMin\tMean\tMax")
-    print("Simulated:\t%s\t%s\t%s" %(minSegSites, int(sum(SS)/float(len(SS))), maxSegSites))
+    print("numSegSites\t\t\tMin\tMean\tMax")
+    print("Simulated:\t\t\t%s\t%s\t%s" %(minSegSites, int(sum(SS)/float(len(SS))), maxSegSites))
     for i in range(len(wins)):
-        print("InputVCF %s:\t%s\t%s\t%s" %(wins[i][0],wins[i][3],wins[i][4],wins[i][5]))
+        print("InputVCF %s:\t\t%s\t%s\t%s" %(wins[i][0],wins[i][3],wins[i][4],wins[i][5]))
     print("\n\n***ReLERNN_SIMULATE.py FINISHED!***\n")
 
 
