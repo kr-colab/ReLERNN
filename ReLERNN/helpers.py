@@ -7,6 +7,70 @@ from ReLERNN.imports import *
 from ReLERNN.simulator import *
 from ReLERNN.sequenceBatchGenerator import *
 
+
+
+def check_demHist(path):
+    fTypeFlag = -9
+    with open(path, "r") as fIN:
+        for line in fIN:
+            if line.startswith("mutation_per_site"):
+                fTypeFlag = 1
+                break
+            if line.startswith("label") and "plot_type" in line:
+                fTypeFlag = 2
+                break
+            if line.startswith("label") and not "plot_type" in line:
+                fTypeFlag = 3
+                break
+    return fTypeFlag
+
+
+def convert_demHist(path, nSamps, gen, fType):
+    swp, PC, DE = [],[],[]
+    # Convert stairwayplot to msp demographic_events
+    if fType == 1:
+        with open(path, "r") as fIN:
+            flag=0
+            lCt=0
+            for line in fIN:
+                if flag == 1:
+                    if lCt % 2 == 0:
+                        swp.append(line.split())
+                    lCt+=1
+                if line.startswith("mutation_per_site"):
+                    flag=1
+        N0 = int(float(swp[0][6]))
+        for i in range(len(swp)):
+            if i == 0:
+                PC.append(msp.PopulationConfiguration(sample_size=nSamps, initial_size=N0))
+            else:
+                DE.append(msp.PopulationParametersChange(time=int(float(swp[i][5])/float(gen)), initial_size=int(float(swp[i][6])), population=0))
+    ## Convert smc++ or MSMC results to msp demographic_events
+    if fType == 2 or fType == 3:
+        with open(path, "r") as fIN:
+            fIN.readline()
+            for line in fIN:
+                ar=line.split(",")
+                swp.append([int(float(ar[1])/gen),int(float(ar[2]))])
+        N0 = swp[0][1]
+        for i in range(len(swp)):
+            if i == 0:
+                PC.append(msp.PopulationConfiguration(sample_size=nSamps, initial_size=N0))
+            else:
+                DE.append(msp.PopulationParametersChange(time=swp[i][0], initial_size=swp[i][1], population=0))
+    dd=msp.DemographyDebugger(population_configurations=PC,
+            demographic_events=DE)
+    print("Simulating under the following population size history:")
+    dd.print_history()
+    MspD = {"population_configurations" : PC,
+        "migration_matrix" : None,
+        "demographic_events" : DE}
+    if MspD:
+        return MspD
+    else:
+        print("Error in converting demographic history file.")
+        sys.exit(1)
+
 def relu(x):
     return max(0,x)
 
