@@ -21,6 +21,12 @@ def get_index(pos, winSize):
     return indices
 
 
+def snps_per_win(pos, window_size):
+    bins = np.arange(1, pos.max()+window_size, window_size) #use 1-based coordinates, per VCF standard
+    y,x = np.histogram(pos,bins=bins)
+    return y
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--vcf',dest='vcf',help='filtered and qc-checked vcf file note: every row must correspond to a biallelic snp with no missing data)')

@@ -108,14 +108,14 @@ def main():
         for line in fin:
             if not line.startswith("chrom"):
                 ar=line.split()
-                rate=float(ar[-1])
+                rate=float(ar[4])
                 C=get_corrected(rate,bs)
-                ar[-1]=C[0]
+                ar[4]=C[0]
                 ar.extend([C[1],C[2]])
                 fout.write("\t".join([str(x) for x in ar])+"\n")
             else:
                 #fout.write(line)
-                fout.write("%s\t%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","recombRate","CI95LO","CI95HI"))
+                fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate","CI95LO","CI95HI"))
 
     ## Remove the bootstrap tree files
     shutil.rmtree(bsDir)

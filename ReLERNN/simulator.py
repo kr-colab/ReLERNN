@@ -34,7 +34,8 @@ class Simulator(object):
         priorHighsMu = 1e-8,
         ChromosomeLength = 1e5,
         MspDemographics = None,
-        winMasks = None
+        winMasks = None,
+        maskThresh = 1.0
         ):
 
         self.N = N
@@ -49,6 +50,7 @@ class Simulator(object):
         self.mu = None
         self.segSites = None
         self.winMasks = winMasks
+        self.maskThresh = maskThresh
 
     def runOneMsprimeSim(self,simNum,direc):
         '''
@@ -85,10 +87,13 @@ class Simulator(object):
         H = ts.genotype_matrix()
         P = np.array([s.position for s in ts.sites()],dtype='float32')
 
-        # Sample from the mask distribution and mask positions and genotypes
+        # Sample from the genome-wide distribution of masks and mask both positions and genotypes
         if self.winMasks:
-            rand_mask = self.winMasks[random.randint(0,len(self.winMasks)-1)]
-            if rand_mask:
+            while True:
+                rand_mask = self.winMasks[random.randint(0,len(self.winMasks)-1)]
+                if rand_mask[0] < self.maskThresh:
+                    break
+            if rand_mask[0] > 0.0:
                 H,P = self.maskGenotypes(H, P, rand_mask)
 
         # Dump
@@ -107,12 +112,9 @@ class Simulator(object):
         """
         Return the genotype and position matrices where masked sites have been removed
         """
-        mask = [True for site in P]
-        for i in range(len(P)):
-            for mask_win in rand_mask:
-                if mask_win[0] <= P[i] <= mask_win[1]:
-                    mask[i] = False
-        mask = np.array(mask)
+        mask_wins = np.array(rand_mask[1])
+        mask_wins = np.reshape(mask_wins, 2 * len(mask_wins))
+        mask = np.digitize(P, mask_wins) % 2 == 0
         return H[mask], P[mask]
 
 

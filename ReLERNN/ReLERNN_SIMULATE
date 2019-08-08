@@ -103,35 +103,38 @@ def find_win_size(winSize,pos,step,winSizeMx):
         return [mn,u,mx]
 
 
-def maskProp(chrom, a, L, mask):
+def maskStats(chrom, a, L, last_win, mask):
     """
-    return a two-element list with the first element being the total proportion of the window that is masked and
-    the second element being a list of masked positions that are relative to the windown start=0 and the window end = window length
+    return a three-element list with the first element being the total proportion of the window that is masked,
+    the second element being a list of masked positions that are relative to the windown start=0 and the window end = window length,
+    and the third being the last window before breaking to expidite the next loop
     """
     b = a + L
-    prop = [0.0,[]]
-    for i in range(len(mask[chrom])):
+    prop = [0.0,[],0]
+    for i in range(last_win, len(mask[chrom])):
         x, y = mask[chrom][i][0], mask[chrom][i][1]
-        if b < x:
-            return prop
         if y < a:
             continue
-        else:
-            # i.e. they overlap
+        if b < x:
+            return prop
+        else:  # i.e. [a--b] and [x--y] overlap
             if a >= x and b <= y:
-                return [1.0, [[0,L]]]
+                return [1.0, [[0,L]], i]
             elif a >= x and b > y:
                 win_prop = (y-a)/float(b-a)
                 prop[0] += win_prop 
                 prop[1].append([0,int(win_prop * L)])
+                prop[2] = i
             elif b <= y and a < x:
                 win_prop = (b-x)/float(b-a)
                 prop[0] += win_prop
                 prop[1].append([int((1-win_prop)*L),L])
-            elif x > a and b > y:
+                prop[2] = i
+            else:
                 win_prop = (y-x)/float(b-a)
                 prop[0] += win_prop
                 prop[1].append([int(((x-a)/float(b-a))*L), int(((y-a)/float(b-a))*L)])
+                prop[2] = i
     return prop
 
 
@@ -200,7 +203,7 @@ def main():
     chromosomes=[]
     if not os.path.exists(chromFILE):
         print("One-time read through VCF...")
-        with open(chromFILE, "w") as fOUT, open(args.vcf, "r") as fIN:
+        with open(args.vcf, "r") as fIN, open(chromFILE, "w") as fOUT:
             for line in fIN:
                 if not line.startswith("#"):
                     ar=line.split()
@@ -311,8 +314,8 @@ def main():
                     mask[ar[0]].append([int(pos) for pos in ar[1:]])
                 except KeyError:
                     mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
-
         ## Calculate proportion masked sites for each window
+        print("Accessibility mask found: calculating the proportion of the genome that is masked...")
         win_masks = []
         mask_proportions = []
         with open(winFILE, "r") as fIN:
@@ -322,12 +325,44 @@ def main():
                 win_len = int(ar[2])
                 win_ct = int(ar[6])
                 start = 0
+                last_win = 0
                 for i in range(win_ct):
-                    M = maskProp(win_chrom, start, win_len, mask)
+                    M = maskStats(win_chrom, start, win_len, last_win, mask)
                     mask_proportions.append(M[0])
-                    win_masks.append(M[1])
+                    win_masks.append(M)
+                    last_win = M[2]
                     start += win_len
-        print("Accessibility mask found: {}% of genome inaccessible.".format(round(mean(mask_proportions)*100,1)))
+        print("{}% of genome inaccessible".format(round(mean(mask_proportions)*100,1)))
+    
+    
+    ### Read accessability mask
+    #mask={}
+    #if args.mask:
+    #    with open(args.mask, "r") as fIN:
+    #        for line in fIN:
+    #            ar = line.split()
+    #            try:
+    #                mask[ar[0]].append([int(pos) for pos in ar[1:]])
+    #            except KeyError:
+    #                mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
+    #    ## Calculate proportion masked sites for each window
+    #    
+    #    print("Accessibility mask found: calculating the proportion of the genome that is masked...")
+    #    win_masks = []
+    #    mask_proportions = []
+    #    for win in wins:
+    #        mask_wins = np.array(mask[win[0]])
+    #        mask_wins = np.reshape(mask_wins, 2 * len(mask_wins))
+    #        a = 0
+    #        l = win[2]
+    #        for i in range(win[6]):
+    #            b = a + l
+    #            M = maskStats2(a,b,i,l,mask_wins)
+    #            a += l
+    #            mask_proportions.append(M[0])
+    #            win_masks.append(M)
+    #    print("{}% of genome inaccessible".format(round(mean(mask_proportions)*100,1)))
+    #sys.exit() 
 
     ## Define parameters for msprime simulation
     print("Simulating with window size = {} bp.".format(maxLen))

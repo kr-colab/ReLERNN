@@ -49,10 +49,10 @@ def load_and_predictVCF(VCFGenerator,
     sd=np.std(info["rho"])
     with open(resultsFile, "w") as fOUT:
         ct=0
-        fOUT.write("%s\t%s\t%s\t%s\n" %("chrom","start","end","recombRate"))
+        fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate"))
         for i in range(len(predictions)):
             if nSNPs[i] >= minS:
-                fOUT.write("%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,relu(sd*predictions[i][0]+u)))
+                fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,nSNPs[i],relu(sd*predictions[i][0]+u)))
             ct+=win
 
     return None
