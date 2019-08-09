@@ -11,32 +11,6 @@ from ReLERNN.sequenceBatchGenerator import *
 from ReLERNN.networks import *
 
 
-def relu(x):
-    return max(0,x)
-
-
-def get_index(L,N):
-    idx,outN="",""
-    dist=float("inf")
-    for i in range(len(L)):
-        D=abs(N-L[i])
-        if D < dist:
-            idx=i
-            outN=L[i]
-            dist=D
-    return [idx,outN]
-
-
-def get_corrected(rate,bs):
-    idx=get_index(bs["Q2"],rate)
-    CI95LO=bs["CI95LO"][idx[0]]
-    CI95HI=bs["CI95HI"][idx[0]]
-    cRATE=relu(rate+(bs["rho"][idx[0]]-idx[1]))
-    ciHI=relu(cRATE+(CI95HI-idx[1]))
-    ciLO=relu(cRATE+(CI95LO-idx[1]))
-    return [cRATE,ciLO,ciHI]
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')

@@ -66,7 +66,7 @@ def main():
             os.makedirs(p)
 
     
-    ## Read genomeFILE
+    ## Read the genome file
     chromosomes = []
     with open(args.genome, "r") as fIN:
         for line in fIN:
@@ -76,7 +76,7 @@ def main():
                 sys.exit(1)
             chromosomes.append("{}:{}-{}".format(ar[0],ar[1],ar[2]))
     
-    ## Pass params to the manager    
+    ## Pass params to the vcf manager    
     manager_params = {
             'vcf':args.vcf,
             'mask':args.mask,

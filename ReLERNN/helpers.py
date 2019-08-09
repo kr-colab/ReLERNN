@@ -8,6 +8,47 @@ from ReLERNN.simulator import *
 from ReLERNN.sequenceBatchGenerator import *
 
 
+def get_corrected_index(L,N):
+    idx,outN="",""
+    dist=float("inf")
+    for i in range(len(L)):
+        D=abs(N-L[i])
+        if D < dist:
+            idx=i
+            outN=L[i]
+            dist=D
+    return [idx,outN]
+
+#-------------------------------------------------------------------------------------------
+
+def get_corrected(rate,bs):
+    idx=get_corrected_index(bs["Q2"],rate)
+    CI95LO=bs["CI95LO"][idx[0]]
+    CI95HI=bs["CI95HI"][idx[0]]
+    cRATE=relu(rate+(bs["rho"][idx[0]]-idx[1]))
+    ciHI=relu(cRATE+(CI95HI-idx[1]))
+    ciLO=relu(cRATE+(CI95LO-idx[1]))
+    return [cRATE,ciLO,ciHI]
+
+#-------------------------------------------------------------------------------------------
+
+def get_index(pos, winSize):
+    y=snps_per_win(pos,winSize)
+    st=0
+    indices=[]
+    for i in range(len(y)):
+        indices.append([st,st+y[i]])
+        st+=y[i]
+    return indices
+
+#-------------------------------------------------------------------------------------------
+
+def snps_per_win(pos, window_size):
+    bins = np.arange(1, pos.max()+window_size, window_size) #use 1-based coordinates, per VCF standard
+    y,x = np.histogram(pos,bins=bins)
+    return y
+
+#-------------------------------------------------------------------------------------------
 
 def check_demHist(path):
     fTypeFlag = -9
@@ -24,6 +65,7 @@ def check_demHist(path):
                 break
     return fTypeFlag
 
+#-------------------------------------------------------------------------------------------
 
 def convert_demHist(path, nSamps, gen, fType):
     swp, PC, DE = [],[],[]
@@ -70,6 +112,8 @@ def convert_demHist(path, nSamps, gen, fType):
     else:
         print("Error in converting demographic history file.")
         sys.exit(1)
+
+#-------------------------------------------------------------------------------------------
 
 def relu(x):
     return max(0,x)
@@ -389,8 +433,6 @@ def plotResults(resultsFile,saveas):
     This function plots the results of the final test set predictions,
     as well as validation loss as a function of Epochs during training.
 
-    str,str -> None
-
     '''
 
     plt.rc('font', family='serif', serif='Times')
@@ -578,6 +620,7 @@ def ParametricBootStrap(simParameters,
 
     return rho,IQR
 
+#-------------------------------------------------------------------------------------------
 
 def plotParametricBootstrap(results,saveas):
 
@@ -610,17 +653,6 @@ def plotParametricBootstrap(results,saveas):
     fig.savefig(saveas)
 
     return None
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -11,22 +11,6 @@ from ReLERNN.sequenceBatchGenerator import *
 from ReLERNN.networks import *
 
 
-def get_index(pos, winSize):
-    y=snps_per_win(pos,winSize)
-    st=0
-    indices=[]
-    for i in range(len(y)):
-        indices.append([st,st+y[i]])
-        st+=y[i]
-    return indices
-
-
-def snps_per_win(pos, window_size):
-    bins = np.arange(1, pos.max()+window_size, window_size) #use 1-based coordinates, per VCF standard
-    y,x = np.histogram(pos,bins=bins)
-    return y
-
-
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--vcf',dest='vcf',help='filtered and qc-checked vcf file note: every row must correspond to a biallelic snp with no missing data)')
@@ -48,21 +32,14 @@ def main():
 
 
     ## Read in the window sizes
+    maxSimS = 0
     wins=[]
     winFILE=os.path.join(networkDir,"windowSizes.txt")
     with open(winFILE, "r") as fIN:
         for line in fIN:
             ar=line.split()
             wins.append([ar[0],int(ar[1]),int(ar[2]),int(ar[3]),int(ar[4]),int(ar[5])])
-    nSam=[]
-    maxMean=0
-    maxLen=0
-    maxMax=0
-    for i in range(len(wins)):
-        maxMax=max([maxMax,wins[i][5]])
-        maxMean=max([maxMean,wins[i][4]])
-        maxLen=max([maxLen,wins[i][2]])
-        nSam.append(wins[i][1])
+            maxSimS=max([maxSimS, int(ar[5])])
 
 
     ## Loop through chromosomes and predict
@@ -96,7 +73,7 @@ def main():
             DsInfoDir = pickle.load(open(os.path.join(ds,"info.p"),"rb"))
             segSitesInDs = max(DsInfoDir["segSites"])
             maxSegSites = max(maxSegSites,segSitesInDs)
-        maxSegSites = max(maxSegSites, maxMax)
+        maxSegSites = max(maxSegSites, maxSimS)
 
 
         ## Identify parameters used to train
