@@ -4,6 +4,7 @@ Performs a parametric bootstrap to assess any potential bias in recombination ra
 Corrects for this bias and adds 95% confidence intevals to the predictions
 """
 
+
 from ReLERNN.imports import *
 from ReLERNN.simulator import *
 from ReLERNN.helpers import *
@@ -22,16 +23,21 @@ def main():
 
 
     ## Set up the directory structure and output files
-    DataDir = args.outDir
-    trainDir = os.path.join(DataDir,"train")
-    valiDir = os.path.join(DataDir,"vali")
-    testDir = os.path.join(DataDir,"test")
-    networkDir = os.path.join(DataDir,"networks")
+    if not args.outDir:
+        print("Warning: No project directory found, using current working directory.")
+        projectDir = os.getcwd()
+    else:
+        projectDir = args.outDir
+    trainDir = os.path.join(projectDir,"train")
+    valiDir = os.path.join(projectDir,"vali")
+    testDir = os.path.join(projectDir,"test")
+    networkDir = os.path.join(projectDir,"networks")
+    vcfDir = os.path.join(projectDir,"splitVCFs")
     bs_resultFile = os.path.join(networkDir,"bootstrapResults.p")
     bs_plotFile = os.path.join(networkDir,"bootstrapPlot.pdf")
     modelWeights = [os.path.join(networkDir,"model.json"),os.path.join(networkDir,"weights.h5")]
     bs_resultFile = os.path.join(networkDir,"bootstrapResults.p")
-    bsDir = os.path.join(DataDir,"PBS")
+    bsDir = os.path.join(projectDir,"PBS")
 
 
     ## Load simulation and batch pars
@@ -42,7 +48,7 @@ def main():
     with open(batchParsFILE, "rb") as fIN:
         batchPars=pickle.load(fIN)
     pred_resultFiles = []
-    for f in glob.glob(os.path.join(DataDir,"*.PREDICT.txt")):
+    for f in glob.glob(os.path.join(projectDir,"*.PREDICT.txt")):
         pred_resultFiles.append(f)
     if len(pred_resultFiles) < 1:
         print("Error: no .PREDICT.txt file found. You must run ReLERNN_PREDICT.py prior to running ReLERNN_BSCORRECT.py")
@@ -90,6 +96,7 @@ def main():
             else:
                 #fout.write(line)
                 fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate","CI95LO","CI95HI"))
+
 
     ## Remove the bootstrap tree files
     shutil.rmtree(bsDir)

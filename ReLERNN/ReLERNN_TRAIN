@@ -18,12 +18,16 @@ def main():
 
 
     ## Set up the directory structure to store the simulations data.
-    DataDir = args.outDir
-    trainDir = os.path.join(DataDir,"train")
-    valiDir = os.path.join(DataDir,"vali")
-    testDir = os.path.join(DataDir,"test")
-    networkDir = os.path.join(DataDir,"networks")
-    vcfDir = os.path.join(DataDir,"splitVCFs")
+    if not args.outDir:
+        print("Warning: No project directory found, using current working directory.")
+        projectDir = os.getcwd()
+    else:
+        projectDir = args.outDir
+    trainDir = os.path.join(projectDir,"train")
+    valiDir = os.path.join(projectDir,"vali")
+    testDir = os.path.join(projectDir,"test")
+    networkDir = os.path.join(projectDir,"networks")
+    vcfDir = os.path.join(projectDir,"splitVCFs")
 
 
     ## Define output files
@@ -101,8 +105,10 @@ def main():
             validationSteps=args.nValSteps,
             gpuID=args.gpuID)
 
+
     ## Plot results of predictions on test set
     plotResults(resultsFile=test_resultFile,saveas=test_resultFig)
+
 
     print("\n***ReLERNN_TRAIN.py FINISHED!***\n")
 

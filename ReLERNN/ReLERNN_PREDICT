@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Predicts the recombination rate for all genomic windows along the chromosomes
+Predicts the recombination rate for each genomic window in the VCF file
 using a GRU network trained in ReLERNN_TRAIN.py
 """
 
@@ -21,12 +21,16 @@ def main():
 
 
     ## Set up the directory structure to store the simulations data.
-    DataDir = args.outDir
-    trainDir = os.path.join(DataDir,"train")
-    valiDir = os.path.join(DataDir,"vali")
-    testDir = os.path.join(DataDir,"test")
-    networkDir = os.path.join(DataDir,"networks")
-    vcfDir = os.path.join(DataDir,"splitVCFs")
+    if not args.outDir:
+        print("Warning: No project directory found, using current working directory.")
+        projectDir = os.getcwd()
+    else:
+        projectDir = args.outDir
+    trainDir = os.path.join(projectDir,"train")
+    valiDir = os.path.join(projectDir,"vali")
+    testDir = os.path.join(projectDir,"test")
+    networkDir = os.path.join(projectDir,"networks")
+    vcfDir = os.path.join(projectDir,"splitVCFs")
     modelSave = os.path.join(networkDir,"model.json")
     weightsSave = os.path.join(networkDir,"weights.h5")
 
@@ -109,7 +113,7 @@ def main():
 
 
         ## Load trained model and make predictions on VCF data
-        pred_resultFile = os.path.join(DataDir,wins[i][0]+".CHPREDICT.txt")
+        pred_resultFile = os.path.join(projectDir,wins[i][0]+".CHPREDICT.txt")
         load_and_predictVCF(VCFGenerator=pred_sequence,
                 resultsFile=pred_resultFile,
                 network=[modelSave,weightsSave],
@@ -118,9 +122,9 @@ def main():
 
 
     ## Combine chromosome predictions in whole genome prediction file and rm chromosome files
-    genPredFILE=os.path.join(DataDir,bn.replace(".vcf",".PREDICT.txt"))
+    genPredFILE=os.path.join(projectDir,bn.replace(".vcf",".PREDICT.txt"))
     files=[]
-    for f in glob.glob(os.path.join(DataDir,"*.CHPREDICT.txt")):
+    for f in glob.glob(os.path.join(projectDir,"*.CHPREDICT.txt")):
         files.append(f)
     ct=0
     with open(genPredFILE, "w") as fOUT:

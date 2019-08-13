@@ -35,7 +35,8 @@ class Simulator(object):
         ChromosomeLength = 1e5,
         MspDemographics = None,
         winMasks = None,
-        maskThresh = 1.0
+        maskThresh = 1.0,
+        phased = None
         ):
 
         self.N = N
@@ -51,6 +52,7 @@ class Simulator(object):
         self.segSites = None
         self.winMasks = winMasks
         self.maskThresh = maskThresh
+        self.phased = None
 
     def runOneMsprimeSim(self,simNum,direc):
         '''
@@ -86,6 +88,10 @@ class Simulator(object):
         # Convert tree sequence to genotype matrix, and position matrix
         H = ts.genotype_matrix()
         P = np.array([s.position for s in ts.sites()],dtype='float32')
+
+        # "Unphase" genotypes
+        if not self.phased:
+            np.random.shuffle(np.transpose(H))
 
         # Sample from the genome-wide distribution of masks and mask both positions and genotypes
         if self.winMasks:

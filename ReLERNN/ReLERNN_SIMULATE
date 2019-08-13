@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Reads a VCF file, estimates simulation parameters, and runs simulates via msprime.
+Reads a VCF file, estimates simulation parameters, and simulates via msprime.
 NOTE: This assumes that the user has previously QC'd and filtered the VCF.
 """
 
@@ -13,31 +13,35 @@ from ReLERNN.helpers import *
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file Note: Every row must correspond to a biallelic SNP with no missing data)')
-    parser.add_argument('-g','--genome',dest='genome',help='bed-formatted (i.e. zero-based) file of genome-wide chromosome positions to analyize')
-    parser.add_argument('-m','--mask',dest='mask',help='genome-wide accessability mask (non-overlapping bed format)', default=None)
-    parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
-    parser.add_argument('-n','--demographicHistory',dest='dem',help='Output file from either stairwayplot, SMC++, or MSMC',default=0)
+    parser.add_argument('-g','--genome',dest='genome',help='Bed-formatted (i.e. zero-based) file of genome-wide chromosome positions to analyize')
+    parser.add_argument('-m','--mask',dest='mask',help='Bed-formatted file of genome-wide inaccessible bases', default=None)
+    parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
+    parser.add_argument('-n','--demographicHistory',dest='dem',help='Output file from either stairwayplot, SMC++, or MSMC',default=None)
     parser.add_argument('-u','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
     parser.add_argument('-l','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
     parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Upper bound for the assumed ratio between rho and theta',type=float,default=10)
-    parser.add_argument('--winSizeMx',dest='winSizeMx',help='Max number of sites per window, averaged across the genome',type=int,default=1750)
+    parser.add_argument('--phased',help='VCF file is phased',default=True, action='store_true')
+    parser.add_argument('--unphased',dest='phased',help='VCF file is unphased',action='store_false')
+    parser.add_argument('--maxWinSize',dest='winSizeMx',help='Max number of sites per window, averaged across the genome',type=int,default=1750)
+    parser.add_argument('--maskThresh',dest='maskThresh',help='Discard windows where >= maskThresh percent of sites are masked',type=float,default=1.0)
     parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)
     parser.add_argument('--nVali',dest='nVali',help='Number of validation examples to simulate',type=int,default=1000)
     parser.add_argument('--nTest',dest='nTest',help='Number of test examples to simulate',type=int,default=1000)
     parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
     args = parser.parse_args()
-
-
+    
     # Ensure all required arguments are provided
     if not args.vcf.endswith(".vcf"):
         print('Error: VCF file must end in extension ".vcf"')
         sys.exit(1)
     if not args.outDir:
-        print("Error: Path to project directory required!")
-        sys.exit(1)
+        print("Warning: No project directory found, using current working directory.")
+        projectDir = os.getcwd()
+    else:
+        projectDir = args.outDir
     if not args.mask:
         print("Warning: no accessibility mask found. All sites in the genome are assumed to be accessible.") 
-    if args.dem != 0:
+    if args.dem:
         demHist = check_demHist(args.dem)
         if demHist == -9:
             print("Error: demographicHistory file must be raw output from either stairwayplot, SMC++, or MSMC")
@@ -52,7 +56,6 @@ def main():
 
     ## Set up the directory structure to store the simulations data.
     nProc = args.nCPU
-    projectDir = args.outDir
     trainDir = os.path.join(projectDir,"train")
     valiDir = os.path.join(projectDir,"vali")
     testDir = os.path.join(projectDir,"test")
@@ -75,7 +78,8 @@ def main():
                 print("Error: genome file must be formatted as a bed file (i.e.'chromosome     start     end')")
                 sys.exit(1)
             chromosomes.append("{}:{}-{}".format(ar[0],ar[1],ar[2]))
-    
+   
+
     ## Pass params to the vcf manager    
     manager_params = {
             'vcf':args.vcf,
@@ -122,6 +126,8 @@ def main():
                 'priorHighsMu':assumedMu * 1.33,
                 'ChromosomeLength':maxLen,
                 'winMasks':win_masks,
+                'maskThresh':args.maskThresh,
+                'phased':args.phased,
                 'MspDemographics':MspD
                   }
 
@@ -133,7 +139,9 @@ def main():
             'priorLowsMu':assumedMu * 0.66,
             'priorHighsMu':assumedMu * 1.33,
             'ChromosomeLength':maxLen,
-            'winMasks':win_masks
+            'winMasks':win_masks,
+            'maskThresh':args.maskThresh,
+            'phased':args.phased
                   }
 
 
