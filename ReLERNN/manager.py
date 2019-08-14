@@ -8,8 +8,8 @@ from ReLERNN.imports import *
 class Manager(object):
     '''
 
-    The manager class is a framework for handling both VCFs and mask files
-    to multi-thread many of the functions orginally found in ReLERNN_SIMULATE
+    The manager class is a framework for handling both VCFs and masks
+    and can multi-thread many of the functions orginally found in ReLERNN_SIMULATE
 
     '''
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Reads a VCF file, estimates simulation parameters, and simulates via msprime.
+Reads a VCF file, estimates some simulation parameters, and simulates via msprime.
 NOTE: This assumes that the user has previously QC'd and filtered the VCF.
 """
 
@@ -20,6 +20,7 @@ def main():
     parser.add_argument('-u','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
     parser.add_argument('-l','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
     parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Assumed upper bound for the ratio of rho to theta',type=float,default=10.0)
+    parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
     parser.add_argument('--phased',help='VCF file is phased',default=True, action='store_true')
     parser.add_argument('--unphased',dest='phased',help='VCF file is unphased',action='store_false')
     parser.add_argument('--phaseError',dest='phaseError',help='Fraction of bases simulated with incorrect phasing',type=float,default=0.0)
@@ -28,7 +29,6 @@ def main():
     parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)
     parser.add_argument('--nVali',dest='nVali',help='Number of validation examples to simulate',type=int,default=1000)
     parser.add_argument('--nTest',dest='nTest',help='Number of test examples to simulate',type=int,default=1000)
-    parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
     args = parser.parse_args()
     
     # Ensure all required arguments are provided
