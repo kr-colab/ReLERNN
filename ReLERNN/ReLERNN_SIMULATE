@@ -95,20 +95,20 @@ def main():
             'projectDir':projectDir,
             'networkDir':networkDir
               }
-    file_manager = Manager(**manager_params)
+    vcf_manager = Manager(**manager_params)
     
     
     ## Split the VCF file
-    file_manager.splitVCF(nProc=nProc)
+    vcf_manager.splitVCF(nProc=nProc)
     
 
     ## Calculate nSites per window
-    wins, nSamps, maxS, maxLen = file_manager.countSites(nProc=nProc)
+    wins, nSamps, maxS, maxLen = vcf_manager.countSites(nProc=nProc)
 
     
     ## Prepare the accessibility mask
     if args.mask:
-        mask_fraction, win_masks = file_manager.maskWins(wins=wins, maxLen=maxLen, nProc=nProc)
+        mask_fraction, win_masks = vcf_manager.maskWins(wins=wins, maxLen=maxLen, nProc=nProc)
     else:
         mask_fraction, win_masks = 0.0, None
 
