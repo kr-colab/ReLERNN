@@ -12,18 +12,19 @@ from ReLERNN.helpers import *
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file Note: Every row must correspond to a biallelic SNP with no missing data)')
-    parser.add_argument('-g','--genome',dest='genome',help='Bed-formatted (i.e. zero-based) file of genome-wide chromosome positions to analyize')
-    parser.add_argument('-m','--mask',dest='mask',help='Bed-formatted file of genome-wide inaccessible bases', default=None)
+    parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file. Important: Every row must correspond to a biallelic SNP with no missing data!')
+    parser.add_argument('-g','--genome',dest='genome',help='Bed-formatted (i.e. zero-based) file corresponding to chromosomes and positions to consider')
+    parser.add_argument('-m','--mask',dest='mask',help='Bed-formatted file corresponding to inaccessible bases', default=None)
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
     parser.add_argument('-n','--demographicHistory',dest='dem',help='Output file from either stairwayplot, SMC++, or MSMC',default=None)
     parser.add_argument('-u','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
     parser.add_argument('-l','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
-    parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Upper bound for the assumed ratio between rho and theta',type=float,default=10)
+    parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Assumed upper bound for the ratio of rho to theta',type=float,default=10.0)
     parser.add_argument('--phased',help='VCF file is phased',default=True, action='store_true')
     parser.add_argument('--unphased',dest='phased',help='VCF file is unphased',action='store_false')
-    parser.add_argument('--maxWinSize',dest='winSizeMx',help='Max number of sites per window, averaged across the genome',type=int,default=1750)
-    parser.add_argument('--maskThresh',dest='maskThresh',help='Discard windows where >= maskThresh percent of sites are masked',type=float,default=1.0)
+    parser.add_argument('--phaseError',dest='phaseError',help='Fraction of bases simulated with incorrect phasing',type=float,default=0.0)
+    parser.add_argument('--maxWinSize',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
+    parser.add_argument('--maskThresh',dest='maskThresh',help='Discard windows where >= maskThresh percent of sites are inaccessible',type=float,default=1.0)
     parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)
     parser.add_argument('--nVali',dest='nVali',help='Number of validation examples to simulate',type=int,default=1000)
     parser.add_argument('--nTest',dest='nTest',help='Number of test examples to simulate',type=int,default=1000)
@@ -52,9 +53,13 @@ def main():
     else:
         print("Warning: no demographic history file found. All training data will be simulated under demographic equilibrium.")
         demHist = 0
-
+    if not args.phased and args.phaseError != 0.0:
+        print("Error: non-zero 'phaseError' cannot be used in conjunction with '--unphased'")
+        sys.exit(1)
+    
 
     ## Set up the directory structure to store the simulations data.
+    time.sleep(5)
     nProc = args.nCPU
     trainDir = os.path.join(projectDir,"train")
     valiDir = os.path.join(projectDir,"vali")
@@ -128,6 +133,7 @@ def main():
                 'winMasks':win_masks,
                 'maskThresh':args.maskThresh,
                 'phased':args.phased,
+                'phaseError':args.phaseError,
                 'MspDemographics':MspD
                   }
 
@@ -141,7 +147,8 @@ def main():
             'ChromosomeLength':maxLen,
             'winMasks':win_masks,
             'maskThresh':args.maskThresh,
-            'phased':args.phased
+            'phased':args.phased,
+            'phaseError':args.phaseError
                   }
 
 

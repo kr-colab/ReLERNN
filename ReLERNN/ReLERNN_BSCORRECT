@@ -14,7 +14,7 @@ from ReLERNN.networks import *
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
+    parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default=0)
     parser.add_argument('--nSlice',dest='nSlice',help='Number of recombination rate bins to simulate over', type=int, default=100)
     parser.add_argument('--nReps',dest='nReps',help='Number of simulations per step', type=int, default=1000)

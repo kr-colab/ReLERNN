@@ -13,9 +13,9 @@ from ReLERNN.networks import *
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--vcf',dest='vcf',help='filtered and qc-checked vcf file note: every row must correspond to a biallelic snp with no missing data)')
-    parser.add_argument('--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
-    parser.add_argument('--minSites',dest='minS',help='minimum number of sites in a window required to return a prediction', type=int, default = 50)
+    parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file. Important: Every row must correspond to a biallelic SNP with no missing data!')
+    parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
+    parser.add_argument('--minSites',dest='minS',help='Minimum number of SNPs in a genomic window required to return a prediction', type=int, default = 50)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default = 0)
     args = parser.parse_args()
 

@@ -36,7 +36,8 @@ class Simulator(object):
         MspDemographics = None,
         winMasks = None,
         maskThresh = 1.0,
-        phased = None
+        phased = None,
+        phaseError = None
         ):
 
         self.N = N
@@ -53,6 +54,8 @@ class Simulator(object):
         self.winMasks = winMasks
         self.maskThresh = maskThresh
         self.phased = None
+        self.phaseError = phaseError
+
 
     def runOneMsprimeSim(self,simNum,direc):
         '''
@@ -93,6 +96,10 @@ class Simulator(object):
         if not self.phased:
             np.random.shuffle(np.transpose(H))
 
+        # Simulate phasing error
+        if self.phaseError:
+            H = self.phaseErrorer(H,self.phaseError)
+
         # Sample from the genome-wide distribution of masks and mask both positions and genotypes
         if self.winMasks:
             while True:
@@ -111,7 +118,7 @@ class Simulator(object):
         np.save(Ppath,P)
 
         # Return number of sites
-        return len(H)
+        return H.shape[0]
 
 
     def maskGenotypes(self, H, P, rand_mask):
@@ -122,6 +129,18 @@ class Simulator(object):
         mask_wins = np.reshape(mask_wins, 2 * len(mask_wins))
         mask = np.digitize(P, mask_wins) % 2 == 0
         return H[mask], P[mask]
+
+
+    def phaseErrorer(self, H, rate):
+        """
+        Returns the genotype matrix where some fraction of sites have shuffled samples
+        """
+        H_shuf = copy.deepcopy(H)
+        np.random.shuffle(np.transpose(H_shuf))
+        H_mask = np.random.choice([True,False], H.shape[0], p = [1-rate,rate])
+        H_mask = np.repeat(H_mask, H.shape[1])
+        H_mask = H_mask.reshape(H.shape)
+        return np.where(H_mask,H,H_shuf)
 
 
     def simulateAndProduceTrees(self,direc,numReps,simulator,nProc=1):
