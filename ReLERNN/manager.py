@@ -9,7 +9,7 @@ class Manager(object):
     '''
 
     The manager class is a framework for handling both VCFs and masks
-    and can multi-thread many of the functions orginally found in ReLERNN_SIMULATE
+    and can multi-process many of the functions orginally found in ReLERNN_SIMULATE
 
     '''
 
