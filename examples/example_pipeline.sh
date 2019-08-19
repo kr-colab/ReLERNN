@@ -7,10 +7,15 @@ MU="1e-8"
 RTR="1"
 DIR="./example_output/"
 VCF="./example.vcf"
+GENOME="./genome.bed"
+MASK="./accessibility_mask.bed"
 
 # Simulate data
 ${SIMULATE} \
     --vcf ${VCF} \
+    --genome ${GENOME} \
+    --mask ${MASK} \
+    --phased \
     --projectDir ${DIR} \
     --assumedMu ${MU} \
     --upperRhoThetaRatio ${RTR} \

@@ -13,8 +13,8 @@ from ReLERNN.simulator import *
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file. Important: Every row must correspond to a biallelic SNP with no missing data!')
-    parser.add_argument('-g','--genome',dest='genome',help='Bed-formatted (i.e. zero-based) file corresponding to chromosomes and positions to consider')
-    parser.add_argument('-m','--mask',dest='mask',help='Bed-formatted file corresponding to inaccessible bases', default=None)
+    parser.add_argument('-g','--genome',dest='genome',help='BED-formatted (i.e. zero-based) file corresponding to chromosomes and positions to evaluate')
+    parser.add_argument('-m','--mask',dest='mask',help='BED-formatted file corresponding to inaccessible bases', default=None)
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
     parser.add_argument('-n','--demographicHistory',dest='dem',help='Output file from either stairwayplot, SMC++, or MSMC',default=None)
     parser.add_argument('-u','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
