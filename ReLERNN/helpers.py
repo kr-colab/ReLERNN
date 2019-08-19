@@ -8,6 +8,36 @@ from ReLERNN.simulator import *
 from ReLERNN.sequenceBatchGenerator import *
 
 
+#-------------------------------------------------------------------------------------------
+
+def assign_task(mpID, task_q, nProcs):
+    c,i,nth_job=0,0,1
+    while (i+1)*nProcs <= len(mpID):
+        i+=1
+    nP1=nProcs-(len(mpID)%nProcs)
+    for j in range(nP1):
+        task_q.put((mpID[c:c+i], nth_job))
+        nth_job += 1
+        c=c+i
+    for j in range(nProcs-nP1):
+        task_q.put((mpID[c:c+i+1], nth_job))
+        nth_job += 1
+        c=c+i+1
+
+
+#-------------------------------------------------------------------------------------------
+
+def create_procs(nProcs, task_q, result_q, params, worker):
+    pids = []
+    for _ in range(nProcs):
+        p = mp.Process(target=worker, args=(task_q, result_q, params))
+        p.daemon = True
+        p.start()
+        pids.append(p)
+    return pids
+
+#-------------------------------------------------------------------------------------------
+
 def get_corrected_index(L,N):
     idx,outN="",""
     dist=float("inf")
@@ -47,6 +77,58 @@ def snps_per_win(pos, window_size):
     bins = np.arange(1, pos.max()+window_size, window_size) #use 1-based coordinates, per VCF standard
     y,x = np.histogram(pos,bins=bins)
     return y
+
+#-------------------------------------------------------------------------------------------
+
+def find_win_size(winSize, pos, step, winSizeMx):
+    snpsWin=snps_per_win(pos,winSize)
+    mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
+    if mx <= winSizeMx:
+        return [winSize,mn,u,mx,len(snpsWin)]
+    else:
+        return [mn,u,mx]
+
+#-------------------------------------------------------------------------------------------
+
+def maskStats(wins, last_win, mask, maxLen):
+    """
+    return a three-element list with the first element being the total proportion of the window that is masked,
+    the second element being a list of masked positions that are relative to the windown start=0 and the window end = window length,
+    and the third being the last window before breaking to expidite the next loop
+    """
+    chrom = wins[0].split(":")[0]
+    a = wins[1]
+    L = wins[2]
+    b = a + L
+    prop = [0.0,[],0]
+    try:
+        for i in range(last_win, len(mask[chrom])):
+            x, y = mask[chrom][i][0], mask[chrom][i][1]
+            if y < a:
+                continue
+            if b < x:
+                return prop
+            else:  # i.e. [a--b] and [x--y] overlap
+                if a >= x and b <= y:
+                    return [1.0, [[0,maxLen]], i]
+                elif a >= x and b > y:
+                    win_prop = (y-a)/float(b-a)
+                    prop[0] += win_prop
+                    prop[1].append([0,int(win_prop * maxLen)])
+                    prop[2] = i
+                elif b <= y and a < x:
+                    win_prop = (b-x)/float(b-a)
+                    prop[0] += win_prop
+                    prop[1].append([int((1-win_prop)*maxLen),maxLen])
+                    prop[2] = i
+                else:
+                    win_prop = (y-x)/float(b-a)
+                    prop[0] += win_prop
+                    prop[1].append([int(((x-a)/float(b-a))*maxLen), int(((y-a)/float(b-a))*maxLen)])
+                    prop[2] = i
+        return prop
+    except KeyError:
+        return prop
 
 #-------------------------------------------------------------------------------------------
 
@@ -296,10 +378,10 @@ def simplifyTreeSequenceOnSubSampleSet_stub(ts,numSamples):
 
 #-------------------------------------------------------------------------------------------
 
-def shuffleIndividuals(x):
-    t = np.arange(x.shape[1])
-    np.random.shuffle(t)
-    return x[:,t]
+#def shuffleIndividuals(x):
+#    t = np.arange(x.shape[1])
+#    np.random.shuffle(t)
+#    return x[:,t]
 
 #-------------------------------------------------------------------------------------------
 
@@ -649,7 +731,6 @@ def plotParametricBootstrap(results,saveas):
     ax.set_ylim(lims)
     ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
 
-    #print("finished")
     fig.savefig(saveas)
 
     return None

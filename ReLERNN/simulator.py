@@ -179,7 +179,9 @@ class Simulator(object):
         # do the work
         print("Simulate...")
         pids = self.create_procs(nProc, task_q, result_q, params)
+        #pids = create_procs(nProc, task_q, result_q, params, self.worker_simulate)
         self.assign_task(mpID, task_q, nProc)
+        #assign_task(mpID, task_q, nProc)
         try:
             task_q.join()
         except KeyboardInterrupt:
@@ -224,6 +226,18 @@ class Simulator(object):
             p.start()
             pids.append(p)
         return pids
+
+
+    #def worker_simulate(self, task_q, result_q, params):
+    #    while True:
+    #        try:
+    #            mpID, nth_job = task_q.get()
+    #            #unpack parameters
+    #            simulator, direc = params
+    #            for i in mpID:
+    #                    result_q.put([i,self.runOneMsprimeSim(i,direc)])
+    #        finally:
+    #            task_q.task_done()
 
 
     def worker(self, task_q, result_q, params):

@@ -5,9 +5,9 @@ NOTE: This assumes that the user has previously QC'd and filtered the VCF.
 """
 
 from ReLERNN.imports import *
+from ReLERNN.helpers import *
 from ReLERNN.manager import *
 from ReLERNN.simulator import *
-from ReLERNN.helpers import *
 
 
 def main():

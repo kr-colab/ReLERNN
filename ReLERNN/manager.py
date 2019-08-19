@@ -4,6 +4,7 @@ Author: Jeff Adrion
 '''
 
 from ReLERNN.imports import *
+from ReLERNN.helpers import *
 
 class Manager(object):
     '''
@@ -44,8 +45,9 @@ class Manager(object):
         params=self.vcfDir, self.vcf, self.chromosomes
 
         # do the work
-        pids = self.create_procs_splitVCF(nProc, task_q, result_q, params)
-        self.assign_task_splitVCF(mpID, task_q, nProc)
+        #pids = self.create_procs_splitVCF(nProc, task_q, result_q, params)
+        pids = create_procs(nProc, task_q, result_q, params, self.worker_splitVCF)
+        assign_task(mpID, task_q, nProc)
         try:
             task_q.join()
         except KeyboardInterrupt:
@@ -55,29 +57,14 @@ class Manager(object):
         return None
 
 
-    def create_procs_splitVCF(self, nProcs, task_q, result_q, params):
-        pids = []
-        for _ in range(nProcs):
-            p = mp.Process(target=self.worker_splitVCF, args=(task_q, result_q, params))
-            p.daemon = True
-            p.start()
-            pids.append(p)
-        return pids
-
-
-    def assign_task_splitVCF(self, mpID, task_q, nProcs):
-        c,i,nth_job=0,0,1
-        while (i+1)*nProcs <= len(mpID):
-            i+=1
-        nP1=nProcs-(len(mpID)%nProcs)
-        for j in range(nP1):
-            task_q.put((mpID[c:c+i], nth_job))
-            nth_job += 1
-            c=c+i
-        for j in range(nProcs-nP1):
-            task_q.put((mpID[c:c+i+1], nth_job))
-            nth_job += 1
-            c=c+i+1
+    #def create_procs_splitVCF(self, nProcs, task_q, result_q, params):
+    #    pids = []
+    #    for _ in range(nProcs):
+    #        p = mp.Process(target=self.worker_splitVCF, args=(task_q, result_q, params))
+    #        p.daemon = True
+    #        p.start()
+    #        pids.append(p)
+    #    return pids
 
 
     def worker_splitVCF(self, task_q, result_q, params):
@@ -118,8 +105,9 @@ class Manager(object):
         params=self.chromosomes
 
         # do the work
-        pids = self.create_procs_countSites(nProc, task_q, result_q, params)
-        self.assign_task_countSites(mpID, task_q, nProc)
+        #pids = self.create_procs_countSites(nProc, task_q, result_q, params)
+        pids = create_procs(nProc, task_q, result_q, params, self.worker_countSites)
+        assign_task(mpID, task_q, nProc)
         try:
             task_q.join()
         except KeyboardInterrupt:
@@ -148,44 +136,14 @@ class Manager(object):
         return sorted_wins, nSamps[0], maxS, maxLen
 
 
-    def snps_per_win(self, pos, window_size):
-        bins = np.arange(1, pos.max()+window_size, window_size)
-        y,x = np.histogram(pos,bins=bins)
-        return y
-
-
-    def find_win_size(self, winSize, pos, step, winSizeMx):
-        snpsWin=self.snps_per_win(pos,winSize)
-        mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
-        if mx <= winSizeMx:
-            return [winSize,mn,u,mx,len(snpsWin)]
-        else:
-            return [mn,u,mx]
-
-
-    def create_procs_countSites(self, nProcs, task_q, result_q, params):
-        pids = []
-        for _ in range(nProcs):
-            p = mp.Process(target=self.worker_countSites, args=(task_q, result_q, params))
-            p.daemon = True
-            p.start()
-            pids.append(p)
-        return pids
-
-
-    def assign_task_countSites(self, mpID, task_q, nProcs):
-        c,i,nth_job=0,0,1
-        while (i+1)*nProcs <= len(mpID):
-            i+=1
-        nP1=nProcs-(len(mpID)%nProcs)
-        for j in range(nP1):
-            task_q.put((mpID[c:c+i], nth_job))
-            nth_job += 1
-            c=c+i
-        for j in range(nProcs-nP1):
-            task_q.put((mpID[c:c+i+1], nth_job))
-            nth_job += 1
-            c=c+i+1
+    #def create_procs_countSites(self, nProcs, task_q, result_q, params):
+    #    pids = []
+    #    for _ in range(nProcs):
+    #        p = mp.Process(target=self.worker_countSites, args=(task_q, result_q, params))
+    #        p.daemon = True
+    #        p.start()
+    #        pids.append(p)
+    #    return pids
 
 
     def worker_countSites(self, task_q, result_q, params):
@@ -215,7 +173,7 @@ class Manager(object):
                     step=1000
                     winSize=1000000
                     while winSize > 0:
-                        ip = self.find_win_size(winSize,pos,step,self.winSizeMx)
+                        ip = find_win_size(winSize,pos,step,self.winSizeMx)
                         if len(ip) != 5:
                             winSize-=step
                         else:
@@ -258,8 +216,10 @@ class Manager(object):
         params=genomic_wins, mask, maxLen
 
         # do the work
-        pids = self.create_procs_maskWins(nProc, task_q, result_q, params)
-        self.assign_task_maskWins(mpID, task_q, nProc)
+        #pids = self.create_procs_maskWins(nProc, task_q, result_q, params)
+        pids = create_procs(nProc, task_q, result_q, params, self.worker_maskWins)
+        #self.assign_task_maskWins(mpID, task_q, nProc)
+        assign_task(mpID, task_q, nProc)
         try:
             task_q.join()
         except KeyboardInterrupt:
@@ -276,78 +236,19 @@ class Manager(object):
             mask_fraction.append(mask[0])
             win_masks.append(mask)
 
-        print("{}% of genome inaccessible".format(round(self.mean(mask_fraction)*100,1)))
-        return self.mean(mask_fraction), win_masks
+        mean_mask_fraction = sum(mask_fraction)/float(len(mask_fraction))
+        print("{}% of genome inaccessible".format(round(mean_mask_fraction * 100,1)))
+        return mean_mask_fraction, win_masks
 
 
-    def maskStats(self, wins, last_win, mask, maxLen):
-        """
-        return a three-element list with the first element being the total proportion of the window that is masked,
-        the second element being a list of masked positions that are relative to the windown start=0 and the window end = window length,
-        and the third being the last window before breaking to expidite the next loop
-        """
-        chrom = wins[0].split(":")[0]
-        a = wins[1]
-        L = wins[2]
-        b = a + L
-        prop = [0.0,[],0]
-        try:
-            for i in range(last_win, len(mask[chrom])):
-                x, y = mask[chrom][i][0], mask[chrom][i][1]
-                if y < a:
-                    continue
-                if b < x:
-                    return prop
-                else:  # i.e. [a--b] and [x--y] overlap
-                    if a >= x and b <= y:
-                        return [1.0, [[0,maxLen]], i]
-                    elif a >= x and b > y:
-                        win_prop = (y-a)/float(b-a)
-                        prop[0] += win_prop
-                        prop[1].append([0,int(win_prop * maxLen)])
-                        prop[2] = i
-                    elif b <= y and a < x:
-                        win_prop = (b-x)/float(b-a)
-                        prop[0] += win_prop
-                        prop[1].append([int((1-win_prop)*maxLen),maxLen])
-                        prop[2] = i
-                    else:
-                        win_prop = (y-x)/float(b-a)
-                        prop[0] += win_prop
-                        prop[1].append([int(((x-a)/float(b-a))*maxLen), int(((y-a)/float(b-a))*maxLen)])
-                        prop[2] = i
-            return prop
-        except KeyError:
-            return prop
-
-
-    def mean(self, L):
-        return sum(L)/float(len(L))
-
-
-    def create_procs_maskWins(self, nProcs, task_q, result_q, params):
-        pids = []
-        for _ in range(nProcs):
-            p = mp.Process(target=self.worker_maskWins, args=(task_q, result_q, params))
-            p.daemon = True
-            p.start()
-            pids.append(p)
-        return pids
-
-
-    def assign_task_maskWins(self, mpID, task_q, nProcs):
-        c,i,nth_job=0,0,1
-        while (i+1)*nProcs <= len(mpID):
-            i+=1
-        nP1=nProcs-(len(mpID)%nProcs)
-        for j in range(nP1):
-            task_q.put((mpID[c:c+i], nth_job))
-            nth_job += 1
-            c=c+i
-        for j in range(nProcs-nP1):
-            task_q.put((mpID[c:c+i+1], nth_job))
-            nth_job += 1
-            c=c+i+1
+    #def create_procs_maskWins(self, nProcs, task_q, result_q, params):
+    #    pids = []
+    #    for _ in range(nProcs):
+    #        p = mp.Process(target=self.worker_maskWins, args=(task_q, result_q, params))
+    #        p.daemon = True
+    #        p.start()
+    #        pids.append(p)
+    #    return pids
 
 
     def worker_maskWins(self, task_q, result_q, params):
@@ -361,7 +262,7 @@ class Manager(object):
                     if genomic_wins[i][0].split(":")[0] != last_chrom:
                         last_win = 0
                         last_chrom = genomic_wins[i][0].split(":")[0]
-                    M = self.maskStats(genomic_wins[i], last_win, mask, maxLen)
+                    M = maskStats(genomic_wins[i], last_win, mask, maxLen)
                     last_win = M[2]
                     result_q.put(M)
             finally:

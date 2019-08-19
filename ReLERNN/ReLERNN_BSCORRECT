@@ -6,10 +6,8 @@ Corrects for this bias and adds 95% confidence intevals to the predictions
 
 
 from ReLERNN.imports import *
-from ReLERNN.simulator import *
 from ReLERNN.helpers import *
-from ReLERNN.sequenceBatchGenerator import *
-from ReLERNN.networks import *
+from ReLERNN.simulator import *
 
 
 def main():
