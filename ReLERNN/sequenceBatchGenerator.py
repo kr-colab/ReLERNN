@@ -69,11 +69,6 @@ class SequenceBatchGenerator(keras.utils.Sequence):
         if(shuffleExamples):
             np.random.shuffle(self.indices)
 
-    def shuffleIndividuals(self,x):
-        t = np.arange(x.shape[1])
-        np.random.shuffle(t)
-        return x[:,t]
-
     def sort_min_diff(self,amat):
         '''this function takes in a SNP matrix with indv on rows and returns the same matrix with indvs sorted by genetic similarity.
         this problem is NP, so here we use a nearest neighbors approx.  it's not perfect, but it's fast and generally performs ok.
@@ -157,6 +152,12 @@ class SequenceBatchGenerator(keras.utils.Sequence):
         X, y = self.__data_generation(indices)
         return X,y
 
+
+    def shuffleIndividuals(self,x):
+        t = np.arange(x.shape[1])
+        np.random.shuffle(t)
+        return x[:,t]
+
     def __data_generation(self, batchTreeIndices):
 
         respectiveNormalizedTargets = [[t] for t in self.normalizedTargets[batchTreeIndices]]
@@ -238,11 +239,6 @@ class VCFBatchGenerator(keras.utils.Sequence):
         self.realLinePos = realLinePos
         self.posPadVal = posPadVal
         self.hap=hap
-
-    def shuffleIndividuals(self,x):
-        t = np.arange(x.shape[1])
-        np.random.shuffle(t)
-        return x[:,t]
 
     def pad_HapsPosVCF(self,haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
         '''

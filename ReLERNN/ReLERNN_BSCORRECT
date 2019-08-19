@@ -4,60 +4,38 @@ Performs a parametric bootstrap to assess any potential bias in recombination ra
 Corrects for this bias and adds 95% confidence intevals to the predictions
 """
 
+
 from ReLERNN.imports import *
-from ReLERNN.simulator import *
 from ReLERNN.helpers import *
-from ReLERNN.sequenceBatchGenerator import *
-from ReLERNN.networks import *
-
-
-def relu(x):
-    return max(0,x)
-
-
-def get_index(L,N):
-    idx,outN="",""
-    dist=float("inf")
-    for i in range(len(L)):
-        D=abs(N-L[i])
-        if D < dist:
-            idx=i
-            outN=L[i]
-            dist=D
-    return [idx,outN]
-
-
-def get_corrected(rate,bs):
-    idx=get_index(bs["Q2"],rate)
-    CI95LO=bs["CI95LO"][idx[0]]
-    CI95HI=bs["CI95HI"][idx[0]]
-    cRATE=relu(rate+(bs["rho"][idx[0]]-idx[1]))
-    ciHI=relu(cRATE+(CI95HI-idx[1]))
-    ciLO=relu(cRATE+(CI95LO-idx[1]))
-    return [cRATE,ciLO,ciHI]
+from ReLERNN.simulator import *
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
+    parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
+    parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default=0)
     parser.add_argument('--nSlice',dest='nSlice',help='Number of recombination rate bins to simulate over', type=int, default=100)
     parser.add_argument('--nReps',dest='nReps',help='Number of simulations per step', type=int, default=1000)
-    parser.add_argument('--nCPU',dest='nCPU',help='Number of CPUs to use', type=int, default=1)
     args = parser.parse_args()
 
 
     ## Set up the directory structure and output files
-    DataDir = args.outDir
-    trainDir = os.path.join(DataDir,"train")
-    valiDir = os.path.join(DataDir,"vali")
-    testDir = os.path.join(DataDir,"test")
-    networkDir = os.path.join(DataDir,"networks")
+    if not args.outDir:
+        print("Warning: No project directory found, using current working directory.")
+        projectDir = os.getcwd()
+    else:
+        projectDir = args.outDir
+    trainDir = os.path.join(projectDir,"train")
+    valiDir = os.path.join(projectDir,"vali")
+    testDir = os.path.join(projectDir,"test")
+    networkDir = os.path.join(projectDir,"networks")
+    vcfDir = os.path.join(projectDir,"splitVCFs")
     bs_resultFile = os.path.join(networkDir,"bootstrapResults.p")
     bs_plotFile = os.path.join(networkDir,"bootstrapPlot.pdf")
     modelWeights = [os.path.join(networkDir,"model.json"),os.path.join(networkDir,"weights.h5")]
     bs_resultFile = os.path.join(networkDir,"bootstrapResults.p")
-    bsDir = os.path.join(DataDir,"PBS")
+    bsDir = os.path.join(projectDir,"PBS")
 
 
     ## Load simulation and batch pars
@@ -68,7 +46,7 @@ def main():
     with open(batchParsFILE, "rb") as fIN:
         batchPars=pickle.load(fIN)
     pred_resultFiles = []
-    for f in glob.glob(os.path.join(DataDir,"*.PREDICT.txt")):
+    for f in glob.glob(os.path.join(projectDir,"*.PREDICT.txt")):
         pred_resultFiles.append(f)
     if len(pred_resultFiles) < 1:
         print("Error: no .PREDICT.txt file found. You must run ReLERNN_PREDICT.py prior to running ReLERNN_BSCORRECT.py")
@@ -108,14 +86,15 @@ def main():
         for line in fin:
             if not line.startswith("chrom"):
                 ar=line.split()
-                rate=float(ar[-1])
+                rate=float(ar[4])
                 C=get_corrected(rate,bs)
-                ar[-1]=C[0]
+                ar[4]=C[0]
                 ar.extend([C[1],C[2]])
                 fout.write("\t".join([str(x) for x in ar])+"\n")
             else:
                 #fout.write(line)
-                fout.write("%s\t%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","recombRate","CI95LO","CI95HI"))
+                fout.write("%s\t%s\t%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate","CI95LO","CI95HI"))
+
 
     ## Remove the bootstrap tree files
     shutil.rmtree(bsDir)

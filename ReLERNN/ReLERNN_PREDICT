@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Predicts the recombination rate for all genomic windows along the chromosomes
+Predicts the recombination rate for each genomic window in the VCF file
 using a GRU network trained in ReLERNN_TRAIN.py
 """
 
@@ -11,65 +11,39 @@ from ReLERNN.sequenceBatchGenerator import *
 from ReLERNN.networks import *
 
 
-def get_index(pos, winSize):
-    y=snps_per_win(pos,winSize)
-    st=0
-    indices=[]
-    for i in range(len(y)):
-        indices.append([st,st+y[i]])
-        st+=y[i]
-    return indices
-
-
-def snps_per_win(pos, window_size):
-    bins = np.arange(1, pos.max()+window_size, window_size) #use 1-based coordinates, per VCF standard
-    y,x = np.histogram(pos,bins=bins)
-    return y
-
-
-def find_win_size(winSize,pos):
-    snpsWin=snps_per_win(pos,winSize)
-    mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
-    if mx <= 1600:
-        return [winSize,mn,u,mx,len(snpsWin)]
-    else:
-        return [mn,u,mx]
-
-
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--vcf',dest='vcf',help='Filtered and QC-checked VCF file Note: Every row must correspond to a biallelic SNP with no missing data)')
-    parser.add_argument('--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN')
-    parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default=0)
+    parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file. Important: Every row must correspond to a biallelic SNP with no missing data!')
+    parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
+    parser.add_argument('--minSites',dest='minS',help='Minimum number of SNPs in a genomic window required to return a prediction', type=int, default = 50)
+    parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default = 0)
     args = parser.parse_args()
 
+
     ## Set up the directory structure to store the simulations data.
-    DataDir = args.outDir
-    trainDir = os.path.join(DataDir,"train")
-    valiDir = os.path.join(DataDir,"vali")
-    testDir = os.path.join(DataDir,"test")
-    networkDir = os.path.join(DataDir,"networks")
-    vcfDir = os.path.join(DataDir,"splitVCFs")
+    if not args.outDir:
+        print("Warning: No project directory found, using current working directory.")
+        projectDir = os.getcwd()
+    else:
+        projectDir = args.outDir
+    trainDir = os.path.join(projectDir,"train")
+    valiDir = os.path.join(projectDir,"vali")
+    testDir = os.path.join(projectDir,"test")
+    networkDir = os.path.join(projectDir,"networks")
+    vcfDir = os.path.join(projectDir,"splitVCFs")
     modelSave = os.path.join(networkDir,"model.json")
     weightsSave = os.path.join(networkDir,"weights.h5")
 
 
     ## Read in the window sizes
+    maxSimS = 0
     wins=[]
     winFILE=os.path.join(networkDir,"windowSizes.txt")
     with open(winFILE, "r") as fIN:
         for line in fIN:
             ar=line.split()
             wins.append([ar[0],int(ar[1]),int(ar[2]),int(ar[3]),int(ar[4]),int(ar[5])])
-    nSam=[]
-    maxMean=0
-    maxLen=0
-    maxMax=0
-    for i in range(len(wins)):
-        maxMax=max([maxMax,wins[i][5]])
-        maxMean=max([maxMean,wins[i][4]])
-        maxLen=max([maxLen,wins[i][2]])
-        nSam.append(wins[i][1])
+            maxSimS=max([maxSimS, int(ar[5])])
 
 
     ## Loop through chromosomes and predict
@@ -83,6 +57,7 @@ def main():
         chroms=var["CHROM"]
         pos=var["POS"]
         genos=allel.GenotypeChunkedArray(callset["calldata"]["GT"])
+
 
         #Is this a haploid or diploid VCF?
         GT=genos.to_haplotypes()
@@ -102,13 +77,13 @@ def main():
             DsInfoDir = pickle.load(open(os.path.join(ds,"info.p"),"rb"))
             segSitesInDs = max(DsInfoDir["segSites"])
             maxSegSites = max(maxSegSites,segSitesInDs)
-        maxSegSites = max(maxSegSites, maxMax)
+        maxSegSites = max(maxSegSites, maxSimS)
 
 
         ## Identify parameters used to train
         DsInfoDir = pickle.load(open(os.path.join(trainDir,"info.p"),"rb"))
         winSize=wins[i][2]
-        ip=find_win_size(winSize,pos)
+        batchSize=wins[i][4]
 
 
         ## Set network parameters
@@ -119,7 +94,7 @@ def main():
             'IDs':get_index(pos,winSize),
             'GT':genos,
             'POS':pos,
-            'batchSize': ip[4],
+            'batchSize': batchSize,
             'maxLen': maxSegSites,
             'frameWidth': 5,
             'sortInds':False,
@@ -138,17 +113,18 @@ def main():
 
 
         ## Load trained model and make predictions on VCF data
-        pred_resultFile = os.path.join(DataDir,wins[i][0]+".CHPREDICT.txt")
+        pred_resultFile = os.path.join(projectDir,wins[i][0]+".CHPREDICT.txt")
         load_and_predictVCF(VCFGenerator=pred_sequence,
                 resultsFile=pred_resultFile,
                 network=[modelSave,weightsSave],
+                minS=args.minS,
                 gpuID=args.gpuID)
 
 
     ## Combine chromosome predictions in whole genome prediction file and rm chromosome files
-    genPredFILE=os.path.join(DataDir,bn.replace(".vcf",".PREDICT.txt"))
+    genPredFILE=os.path.join(projectDir,bn.replace(".vcf",".PREDICT.txt"))
     files=[]
-    for f in glob.glob(os.path.join(DataDir,"*.CHPREDICT.txt")):
+    for f in glob.glob(os.path.join(projectDir,"*.CHPREDICT.txt")):
         files.append(f)
     ct=0
     with open(genPredFILE, "w") as fOUT:

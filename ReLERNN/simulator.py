@@ -33,7 +33,11 @@ class Simulator(object):
         priorHighsRho = 1e-7,
         priorHighsMu = 1e-8,
         ChromosomeLength = 1e5,
-        MspDemographics = None
+        MspDemographics = None,
+        winMasks = None,
+        maskThresh = 1.0,
+        phased = None,
+        phaseError = None
         ):
 
         self.N = N
@@ -47,6 +51,11 @@ class Simulator(object):
         self.rho = None
         self.mu = None
         self.segSites = None
+        self.winMasks = winMasks
+        self.maskThresh = maskThresh
+        self.phased = None
+        self.phaseError = phaseError
+
 
     def runOneMsprimeSim(self,simNum,direc):
         '''
@@ -83,6 +92,23 @@ class Simulator(object):
         H = ts.genotype_matrix()
         P = np.array([s.position for s in ts.sites()],dtype='float32')
 
+        # "Unphase" genotypes
+        if not self.phased:
+            np.random.shuffle(np.transpose(H))
+
+        # Simulate phasing error
+        if self.phaseError:
+            H = self.phaseErrorer(H,self.phaseError)
+
+        # Sample from the genome-wide distribution of masks and mask both positions and genotypes
+        if self.winMasks:
+            while True:
+                rand_mask = self.winMasks[random.randint(0,len(self.winMasks)-1)]
+                if rand_mask[0] < self.maskThresh:
+                    break
+            if rand_mask[0] > 0.0:
+                H,P = self.maskGenotypes(H, P, rand_mask)
+
         # Dump
         Hname = str(simNum) + "_haps.npy"
         Hpath = os.path.join(direc,Hname)
@@ -92,8 +118,29 @@ class Simulator(object):
         np.save(Ppath,P)
 
         # Return number of sites
-        ns = ts.num_sites
-        return ns
+        return H.shape[0]
+
+
+    def maskGenotypes(self, H, P, rand_mask):
+        """
+        Return the genotype and position matrices where masked sites have been removed
+        """
+        mask_wins = np.array(rand_mask[1])
+        mask_wins = np.reshape(mask_wins, 2 * mask_wins.shape[0])
+        mask = np.digitize(P, mask_wins) % 2 == 0
+        return H[mask], P[mask]
+
+
+    def phaseErrorer(self, H, rate):
+        """
+        Returns the genotype matrix where some fraction of sites have shuffled samples
+        """
+        H_shuf = copy.deepcopy(H)
+        np.random.shuffle(np.transpose(H_shuf))
+        H_mask = np.random.choice([True,False], H.shape[0], p = [1-rate,rate])
+        H_mask = np.repeat(H_mask, H.shape[1])
+        H_mask = H_mask.reshape(H.shape)
+        return np.where(H_mask,H,H_shuf)
 
 
     def simulateAndProduceTrees(self,direc,numReps,simulator,nProc=1):
@@ -129,10 +176,12 @@ class Simulator(object):
         result_q = mp.Queue()
         params=[simulator, direc]
 
-        # do the work boyeeee!
+        # do the work
         print("Simulate...")
         pids = self.create_procs(nProc, task_q, result_q, params)
+        #pids = create_procs(nProc, task_q, result_q, params, self.worker_simulate)
         self.assign_task(mpID, task_q, nProc)
+        #assign_task(mpID, task_q, nProc)
         try:
             task_q.join()
         except KeyboardInterrupt:
@@ -151,8 +200,8 @@ class Simulator(object):
 
         for p in pids:
             p.terminate()
-
         return None
+
 
     def assign_task(self, mpID, task_q, nProcs):
         c,i,nth_job=0,0,1
@@ -177,6 +226,19 @@ class Simulator(object):
             p.start()
             pids.append(p)
         return pids
+
+
+    #def worker_simulate(self, task_q, result_q, params):
+    #    while True:
+    #        try:
+    #            mpID, nth_job = task_q.get()
+    #            #unpack parameters
+    #            simulator, direc = params
+    #            for i in mpID:
+    #                    result_q.put([i,self.runOneMsprimeSim(i,direc)])
+    #        finally:
+    #            task_q.task_done()
+
 
     def worker(self, task_q, result_q, params):
         while True:

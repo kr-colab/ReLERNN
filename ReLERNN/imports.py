@@ -12,6 +12,7 @@ import copy
 import argparse
 import h5py
 import allel
+import time
 
 from sklearn.neighbors import NearestNeighbors
 
