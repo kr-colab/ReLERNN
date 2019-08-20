@@ -4,6 +4,7 @@ Author: Jared Galloway, Jeff Adrion
 '''
 
 from ReLERNN.imports import *
+from ReLERNN.helpers import *
 
 class Simulator(object):
     '''
@@ -178,10 +179,8 @@ class Simulator(object):
 
         # do the work
         print("Simulate...")
-        pids = self.create_procs(nProc, task_q, result_q, params)
-        #pids = create_procs(nProc, task_q, result_q, params, self.worker_simulate)
-        self.assign_task(mpID, task_q, nProc)
-        #assign_task(mpID, task_q, nProc)
+        pids = create_procs(nProc, task_q, result_q, params, self.worker_simulate)
+        assign_task(mpID, task_q, nProc)
         try:
             task_q.join()
         except KeyboardInterrupt:
@@ -203,44 +202,7 @@ class Simulator(object):
         return None
 
 
-    def assign_task(self, mpID, task_q, nProcs):
-        c,i,nth_job=0,0,1
-        while (i+1)*nProcs <= len(mpID):
-            i+=1
-        nP1=nProcs-(len(mpID)%nProcs)
-        for j in range(nP1):
-            task_q.put((mpID[c:c+i], nth_job))
-            nth_job += 1
-            c=c+i
-        for j in range(nProcs-nP1):
-            task_q.put((mpID[c:c+i+1], nth_job))
-            nth_job += 1
-            c=c+i+1
-
-
-    def create_procs(self, nProcs, task_q, result_q, params):
-        pids = []
-        for _ in range(nProcs):
-            p = mp.Process(target=self.worker, args=(task_q, result_q, params))
-            p.daemon = True
-            p.start()
-            pids.append(p)
-        return pids
-
-
-    #def worker_simulate(self, task_q, result_q, params):
-    #    while True:
-    #        try:
-    #            mpID, nth_job = task_q.get()
-    #            #unpack parameters
-    #            simulator, direc = params
-    #            for i in mpID:
-    #                    result_q.put([i,self.runOneMsprimeSim(i,direc)])
-    #        finally:
-    #            task_q.task_done()
-
-
-    def worker(self, task_q, result_q, params):
+    def worker_simulate(self, task_q, result_q, params):
         while True:
             try:
                 mpID, nth_job = task_q.get()
@@ -250,4 +212,3 @@ class Simulator(object):
                         result_q.put([i,self.runOneMsprimeSim(i,direc)])
             finally:
                 task_q.task_done()
-

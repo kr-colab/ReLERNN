@@ -4,9 +4,6 @@ Authors: Jared Galloway, Jeff Adrion
 '''
 
 from ReLERNN.imports import *
-from ReLERNN.simulator import *
-from ReLERNN.sequenceBatchGenerator import *
-
 
 #-------------------------------------------------------------------------------------------
 
@@ -23,7 +20,6 @@ def assign_task(mpID, task_q, nProcs):
         task_q.put((mpID[c:c+i+1], nth_job))
         nth_job += 1
         c=c+i+1
-
 
 #-------------------------------------------------------------------------------------------
 
@@ -378,13 +374,6 @@ def simplifyTreeSequenceOnSubSampleSet_stub(ts,numSamples):
 
 #-------------------------------------------------------------------------------------------
 
-#def shuffleIndividuals(x):
-#    t = np.arange(x.shape[1])
-#    np.random.shuffle(t)
-#    return x[:,t]
-
-#-------------------------------------------------------------------------------------------
-
 def sort_min_diff(amat):
     '''this function takes in a SNP matrix with indv on rows and returns the same matrix with indvs sorted by genetic similarity.
     this problem is NP, so here we use a nearest neighbors approx.  it's not perfect, but it's fast and generally performs ok.
@@ -598,112 +587,6 @@ def unNormalize(mean,sd,data):
 
 #-------------------------------------------------------------------------------------------
 
-def ParametricBootStrap(simParameters,
-                        batchParameters,
-                        trainDir,
-                        network=None,
-                        slices=1000,
-                        repsPerSlice=1000,
-                        gpuID=0,
-                        tempDir="./Temp",
-                        out="./ParametricBootstrap.p",
-                        nCPU=1):
-
-
-    '''
-    This Function is for understanding network confidense
-    over a range of rho, using a parametric bootstrap.
-
-    SIDE NOTE: This will create a "temp" directory for filling
-    writing and re-writing the test sets.
-    after, it will destroy the tempDir.
-
-    The basic idea being that we take a trained network,
-    and iteritevly create test sets of simulation at steps which increase
-    between fixed ranges of Rho.
-
-    This function will output a pickle file containing
-    a dictionary where the first
-
-    This function will output a pickle file containing
-    a dictionary where the ["rho"] key contains the slices
-    between the values of rho where we simulate a test set,
-    and test the trained model.
-
-    The rest of the ket:value pairs in the dictionary contain
-    the quartile information at each slice position for the
-    distribution of test results
-    '''
-
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
-
-    # load json and create model
-    if(network != None):
-        jsonFILE = open(network[0],"r")
-        loadedModel = jsonFILE.read()
-        jsonFILE.close()
-        model=model_from_json(loadedModel)
-        model.load_weights(network[1])
-    else:
-        print("Error: no pretrained network found!")
-
-    if not os.path.exists(tempDir):
-        os.makedirs(tempDir)
-
-    priorLowsRho = simParameters['priorLowsRho']
-    priorHighsRho = simParameters['priorHighsRho']
-
-    rhoDiff = (priorHighsRho - priorLowsRho)/slices
-    IQR = {"rho":[],"Min":[],"CI95LO":[],"Q1":[],"Q2":[],"Q3":[],"CI95HI":[],"Max":[]}
-    rho = [(priorLowsRho+(rhoDiff*i)) for i in range(slices)]
-    IQR["rho"] = rho
-
-    mean,sd,pad = getMeanSDMax(trainDir)
-
-    for idx,r in enumerate(rho):
-        print("Simulating slice ",idx," out of ",slices)
-
-        params = copy.deepcopy(simParameters)
-        params["priorLowsRho"] = r
-        params["priorHighsRho"] = r
-        params.pop("bn", None)
-        simulator = Simulator(**params)
-
-        simulator.simulateAndProduceTrees(numReps=repsPerSlice,
-                                            direc=tempDir,
-                                            simulator="msprime",
-                                            nProc=nCPU)
-
-        batch_params = copy.deepcopy(batchParameters)
-        batch_params['treesDirectory'] = tempDir
-        batch_params['batchSize'] = repsPerSlice
-        batch_params['shuffleExamples'] = False
-        batchGenerator= SequenceBatchGenerator(**batch_params)
-
-        x,y = batchGenerator.__getitem__(0)
-        predictions = unNormalize(mean,sd,model.predict(x))
-        predictions = [p[0] for p in predictions]
-
-        minP,maxP = min(predictions),max(predictions)
-        quartiles = np.percentile(predictions,[2.5,25,50,75,97.5])
-
-        IQR["Min"].append(relu(minP))
-        IQR["Max"].append(relu(maxP))
-        IQR["CI95LO"].append(relu(quartiles[0]))
-        IQR["Q1"].append(relu(quartiles[1]))
-        IQR["Q2"].append(relu(quartiles[2]))
-        IQR["Q3"].append(relu(quartiles[3]))
-        IQR["CI95HI"].append(relu(quartiles[4]))
-
-        del simulator
-        del batchGenerator
-
-    pickle.dump(IQR,open(out,"wb"))
-
-    return rho,IQR
-
-#-------------------------------------------------------------------------------------------
-
 def plotParametricBootstrap(results,saveas):
 
     '''
@@ -734,6 +617,4 @@ def plotParametricBootstrap(results,saveas):
     fig.savefig(saveas)
 
     return None
-
-
 

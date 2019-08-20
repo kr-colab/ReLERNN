@@ -2,7 +2,6 @@
 """Trains a network on data simulated by ReLERNN_SIMULATE.py"""
 
 from ReLERNN.imports import *
-from ReLERNN.simulator import *
 from ReLERNN.helpers import *
 from ReLERNN.sequenceBatchGenerator import *
 from ReLERNN.networks import *

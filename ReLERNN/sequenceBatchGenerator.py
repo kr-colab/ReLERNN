@@ -3,7 +3,6 @@ Authors: Jared Galloway, Jeff Adrion
 '''
 
 from ReLERNN.imports import *
-from ReLERNN.helpers import *
 
 class SequenceBatchGenerator(keras.utils.Sequence):
 
@@ -219,7 +218,7 @@ class VCFBatchGenerator(keras.utils.Sequence):
             derVal = 1,
             realLinePos = True,
             posPadVal = 0,
-            hap=True
+            phase=None
             ):
 
         self.INFO=INFO
@@ -238,7 +237,7 @@ class VCFBatchGenerator(keras.utils.Sequence):
         self.derVal = derVal
         self.realLinePos = realLinePos
         self.posPadVal = posPadVal
-        self.hap=hap
+        self.phase=phase
 
     def pad_HapsPosVCF(self,haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
         '''
@@ -277,16 +276,20 @@ class VCFBatchGenerator(keras.utils.Sequence):
 
     def __getitem__(self, idx):
         GT=self.GT.to_haplotypes()
-        if self.hap==True:
-            GT=GT[:,::2] #Select only the first of the two diploid chromosomes
+        #Is this a haploid or diploid VCF?
+        GTB=GT[:,1:2]
+        GTB=GTB[0].tolist()
+        if len(set(GTB)) == 1 and GTB[0] == -1:
+            GT=GT[:,::2] #Select only the first of the genotypes
+
+        if not self.phase:
+            np.random.shuffle(np.transpose(GT))
 
         haps,pos=[],[]
         for i in range(len(self.IDs)):
             haps.append(GT[self.IDs[i][0]:self.IDs[i][1]])
             pos.append(self.POS[self.IDs[i][0]:self.IDs[i][1]])
 
-
-        maxPos = self.POS.max()
         if(self.realLinePos):
             for i in range(len(pos)):
                 pos[i] = (pos[i]-(self.WIN*i)) / self.WIN
