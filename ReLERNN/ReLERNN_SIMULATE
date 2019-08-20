@@ -21,8 +21,8 @@ def main():
     parser.add_argument('-l','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
     parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Assumed upper bound for the ratio of rho to theta',type=float,default=10.0)
     parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
-    parser.add_argument('--phased',help='VCF file is phased',default=True, action='store_true')
-    parser.add_argument('--unphased',dest='phased',help='VCF file is unphased',action='store_false')
+    parser.add_argument('--phased',help='Treat genotypes as phased',default=False, action='store_true')
+    parser.add_argument('--unphased',dest='phased',help='Treat genotypes as unphased',action='store_false')
     parser.add_argument('--phaseError',dest='phaseError',help='Fraction of bases simulated with incorrect phasing',type=float,default=0.0)
     parser.add_argument('--maxWinSize',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
     parser.add_argument('--maskThresh',dest='maskThresh',help='Discard windows where >= maskThresh percent of sites are inaccessible',type=float,default=1.0)
@@ -105,7 +105,7 @@ def main():
     ## Calculate nSites per window
     wins, nSamps, maxS, maxLen = vcf_manager.countSites(nProc=nProc)
 
-    
+
     ## Prepare the accessibility mask
     if args.mask:
         mask_fraction, win_masks = vcf_manager.maskWins(wins=wins, maxLen=maxLen, nProc=nProc)

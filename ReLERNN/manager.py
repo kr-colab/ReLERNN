@@ -45,7 +45,6 @@ class Manager(object):
         params=self.vcfDir, self.vcf, self.chromosomes
 
         # do the work
-        #pids = self.create_procs_splitVCF(nProc, task_q, result_q, params)
         pids = create_procs(nProc, task_q, result_q, params, self.worker_splitVCF)
         assign_task(mpID, task_q, nProc)
         try:
@@ -55,16 +54,6 @@ class Manager(object):
             sys.exit(0)
 
         return None
-
-
-    #def create_procs_splitVCF(self, nProcs, task_q, result_q, params):
-    #    pids = []
-    #    for _ in range(nProcs):
-    #        p = mp.Process(target=self.worker_splitVCF, args=(task_q, result_q, params))
-    #        p.daemon = True
-    #        p.start()
-    #        pids.append(p)
-    #    return pids
 
 
     def worker_splitVCF(self, task_q, result_q, params):
@@ -105,7 +94,6 @@ class Manager(object):
         params=self.chromosomes
 
         # do the work
-        #pids = self.create_procs_countSites(nProc, task_q, result_q, params)
         pids = create_procs(nProc, task_q, result_q, params, self.worker_countSites)
         assign_task(mpID, task_q, nProc)
         try:
@@ -134,16 +122,6 @@ class Manager(object):
         if len(set(nSamps)) != 1:
             print("Error: chromosomes have different numbers of samples")
         return sorted_wins, nSamps[0], maxS, maxLen
-
-
-    #def create_procs_countSites(self, nProcs, task_q, result_q, params):
-    #    pids = []
-    #    for _ in range(nProcs):
-    #        p = mp.Process(target=self.worker_countSites, args=(task_q, result_q, params))
-    #        p.daemon = True
-    #        p.start()
-    #        pids.append(p)
-    #    return pids
 
 
     def worker_countSites(self, task_q, result_q, params):
@@ -216,9 +194,7 @@ class Manager(object):
         params=genomic_wins, mask, maxLen
 
         # do the work
-        #pids = self.create_procs_maskWins(nProc, task_q, result_q, params)
         pids = create_procs(nProc, task_q, result_q, params, self.worker_maskWins)
-        #self.assign_task_maskWins(mpID, task_q, nProc)
         assign_task(mpID, task_q, nProc)
         try:
             task_q.join()
@@ -239,16 +215,6 @@ class Manager(object):
         mean_mask_fraction = sum(mask_fraction)/float(len(mask_fraction))
         print("{}% of genome inaccessible".format(round(mean_mask_fraction * 100,1)))
         return mean_mask_fraction, win_masks
-
-
-    #def create_procs_maskWins(self, nProcs, task_q, result_q, params):
-    #    pids = []
-    #    for _ in range(nProcs):
-    #        p = mp.Process(target=self.worker_maskWins, args=(task_q, result_q, params))
-    #        p.daemon = True
-    #        p.start()
-    #        pids.append(p)
-    #    return pids
 
 
     def worker_maskWins(self, task_q, result_q, params):

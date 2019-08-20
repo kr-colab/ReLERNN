@@ -39,4 +39,3 @@ def GRU_TUNED84(x,y):
     model.summary()
 
     return model
-
