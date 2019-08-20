@@ -3,7 +3,7 @@
 ====================================================================
 
 ReLERNN uses deep learning to infer the genome-wide landscape of recombination from as few as four chromosomes.
-This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly. The current manuscript detailing ReLERNN can be found [here](https://www.biorxiv.org/content/early/2019/06/06/662247.full.pdf).
+This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly. The current manuscript detailing ReLERNN can be found [here](https://www.biorxiv.org/content/biorxiv/early/2019/08/16/662247.full.pdf).
 
 ## Recommended installation on linux
 Install `tensorflow-gpu` on your system. Directions can be found [here](https://www.tensorflow.org/install/gpu). We recommend using tensorflow version 1.13.1. You will need to install the CUDA toolkit and CuDNN as well as mentioned in the docs above.
@@ -152,7 +152,7 @@ optional arguments:
 ```
 
 ### Optional Step 4) ReLERNN_BSCORRECT
-However, you might want to have an idea of the uncertainty around your predictions. This is where `ReLERNN_BSCORRECT` comes in. `ReLERNN_BSCORRECT` generates 95% confidence intervals around each prediction, and additionally attempts to correct for systematic bias ([see Materials and Methods](https://www.biorxiv.org/content/early/2019/06/06/662247.full.pdf)). It does this by simulated a set of `--nReps` examples at each of `nSlice` recombination rate bins. It then uses the network that was trained in `ReLERNN_TRAIN` and estimates the distribution of predictions around each know recombination rate. The result is both an estimate of uncertainty, and a prediction that has been slightly corrected to account for biases in how the network predicts in this area of parameter space. The resulting file is created as `$/projectDir/vcfprefix.PREDICT.BSCORRECT.txt`, and is formatted similarly to `$/projectDir/vcfprefix.PREDICT.txt`, with the addition of columns for the low and high 95CI bounds.
+However, you might want to have an idea of the uncertainty around your predictions. This is where `ReLERNN_BSCORRECT` comes in. `ReLERNN_BSCORRECT` generates 95% confidence intervals around each prediction, and additionally attempts to correct for systematic bias ([see Materials and Methods](https://www.biorxiv.org/content/biorxiv/early/2019/08/16/662247.full.pdf)). It does this by simulated a set of `--nReps` examples at each of `nSlice` recombination rate bins. It then uses the network that was trained in `ReLERNN_TRAIN` and estimates the distribution of predictions around each know recombination rate. The result is both an estimate of uncertainty, and a prediction that has been slightly corrected to account for biases in how the network predicts in this area of parameter space. The resulting file is created as `$/projectDir/vcfprefix.PREDICT.BSCORRECT.txt`, and is formatted similarly to `$/projectDir/vcfprefix.PREDICT.txt`, with the addition of columns for the low and high 95CI bounds.
 
 The complete list of options used in `ReLERNN_BSCORRECT` are found below:
 ```
