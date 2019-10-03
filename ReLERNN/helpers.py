@@ -288,13 +288,6 @@ def runModels(ModelFuncPointer,
                 save_best_only=True)
             ]
 
-    #history = model.fit_generator(TrainGenerator,
-    #    steps_per_epoch= epochSteps,
-    #    epochs=numEpochs,
-    #    validation_data=ValidationGenerator,
-    #    validation_steps=validationSteps,
-    #    use_multiprocessing=False
-    #    )
     history = model.fit_generator(TrainGenerator,
         steps_per_epoch= epochSteps,
         epochs=numEpochs,
@@ -318,8 +311,6 @@ def runModels(ModelFuncPointer,
         model_json = model.to_json()
         with open(outputNetwork[0], "w") as json_file:
             json_file.write(model_json)
-        ##serialize weights to HDF5
-        #model.save_weights(outputNetwork[1])
 
     print("results written to: ",resultsFile)
     pickle.dump(history.history, open( resultsFile, "wb" ))
