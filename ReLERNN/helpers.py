@@ -86,6 +86,13 @@ def find_win_size(winSize, pos, step, winSizeMx):
 
 #-------------------------------------------------------------------------------------------
 
+def force_win_size(winSize, pos):
+    snpsWin=snps_per_win(pos,winSize)
+    mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
+    return [winSize,mn,u,mx,len(snpsWin)]
+
+#-------------------------------------------------------------------------------------------
+
 def maskStats(wins, last_win, mask, maxLen):
     """
     return a three-element list with the first element being the total proportion of the window that is masked,
@@ -268,12 +275,33 @@ def runModels(ModelFuncPointer,
     x,y = TrainGenerator.__getitem__(0)
     model = ModelFuncPointer(x,y)
 
+    # Early stopping and saving the best weights
+    callbacks_list = [
+            keras.callbacks.EarlyStopping(
+                monitor='val_loss',
+                verbose=1,
+                min_delta=0.01,
+                patience=100),
+            keras.callbacks.ModelCheckpoint(
+                filepath=outputNetwork[1],
+                monitor='val_loss',
+                save_best_only=True)
+            ]
+
+    #history = model.fit_generator(TrainGenerator,
+    #    steps_per_epoch= epochSteps,
+    #    epochs=numEpochs,
+    #    validation_data=ValidationGenerator,
+    #    validation_steps=validationSteps,
+    #    use_multiprocessing=False
+    #    )
     history = model.fit_generator(TrainGenerator,
         steps_per_epoch= epochSteps,
         epochs=numEpochs,
         validation_data=ValidationGenerator,
         validation_steps=validationSteps,
-        use_multiprocessing=False
+        use_multiprocessing=False,
+        callbacks=callbacks_list
         )
 
     x,y = TestGenerator.__getitem__(0)
@@ -291,7 +319,7 @@ def runModels(ModelFuncPointer,
         with open(outputNetwork[0], "w") as json_file:
             json_file.write(model_json)
         ##serialize weights to HDF5
-        model.save_weights(outputNetwork[1])
+        #model.save_weights(outputNetwork[1])
 
     print("results written to: ",resultsFile)
     pickle.dump(history.history, open( resultsFile, "wb" ))

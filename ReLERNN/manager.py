@@ -20,6 +20,7 @@ class Manager(object):
         chromosomes = None,
         mask = None,
         winSizeMx = None,
+        forceWinSize = None,
         vcfDir = None,
         projectDir = None,
         networkDir = None
@@ -29,6 +30,7 @@ class Manager(object):
         self.chromosomes = chromosomes
         self.mask = mask
         self.winSizeMx = winSizeMx
+        self.forceWinSize = forceWinSize
         self.vcfDir = vcfDir
         self.projectDir = projectDir
         self.networkDir = networkDir
@@ -148,15 +150,19 @@ class Manager(object):
                         nSamps=len(genos[0])*2
 
                     ## Identify ideal training parameters
-                    step=1000
-                    winSize=1000000
-                    while winSize > 0:
-                        ip = find_win_size(winSize,pos,step,self.winSizeMx)
-                        if len(ip) != 5:
-                            winSize-=step
-                        else:
-                            result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
-                            winSize=0
+                    if self.forceWinSize != 0:
+                        ip = force_win_size(self.forceWinSize,pos)
+                        result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
+                    else:
+                        step=1000
+                        winSize=1000000
+                        while winSize > 0:
+                            ip = find_win_size(winSize,pos,step,self.winSizeMx)
+                            if len(ip) != 5:
+                                winSize-=step
+                            else:
+                                result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
+                                winSize=0
             finally:
                 task_q.task_done()
 
