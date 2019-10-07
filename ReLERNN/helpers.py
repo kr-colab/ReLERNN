@@ -263,6 +263,7 @@ def runModels(ModelFuncPointer,
             epochSteps=100,
             validationSteps=1,
             outputNetwork=None,
+            nCPU = 1,
             gpuID = 0):
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
@@ -293,9 +294,29 @@ def runModels(ModelFuncPointer,
         epochs=numEpochs,
         validation_data=ValidationGenerator,
         validation_steps=validationSteps,
-        use_multiprocessing=False,
-        callbacks=callbacks_list
+        use_multiprocessing=True,
+        callbacks=callbacks_list,
+        max_queue_size=nCPU,
+        workers=nCPU,
         )
+
+    # Write the network and then open it and load the weights (this should hopefully help the exploding gradients)
+    if(outputNetwork != None):
+        ##serialize model to JSON
+        model_json = model.to_json()
+        with open(outputNetwork[0], "w") as json_file:
+            json_file.write(model_json)
+
+    # load json and create model
+    if(network != None):
+        jsonFILE = open(network[0],"r")
+        loadedModel = jsonFILE.read()
+        jsonFILE.close()
+        model=model_from_json(loadedModel)
+        model.load_weights(network[1])
+    else:
+        print("Error: no pretrained network found!")
+        sys.exit(1)
 
     x,y = TestGenerator.__getitem__(0)
     predictions = model.predict(x)
@@ -305,12 +326,6 @@ def runModels(ModelFuncPointer,
     history.history['predictions'] = np.array(predictions)
     history.history['Y_test'] = np.array(y)
     history.history['name'] = ModelName
-
-    if(outputNetwork != None):
-        ##serialize model to JSON
-        model_json = model.to_json()
-        with open(outputNetwork[0], "w") as json_file:
-            json_file.write(model_json)
 
     print("results written to: ",resultsFile)
     pickle.dump(history.history, open( resultsFile, "wb" ))

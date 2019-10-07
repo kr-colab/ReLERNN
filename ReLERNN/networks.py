@@ -39,3 +39,21 @@ def GRU_TUNED84(x,y):
     model.summary()
 
     return model
+
+
+def GRU_POOLED(x,y):
+
+    sites=x.shape[1]
+    features=x.shape[2]
+
+    genotype_inputs = Input(shape=(sites,features))
+    model = layers.Bidirectional(layers.CuDNNGRU(84,return_sequences=False))(genotype_inputs)
+    model = layers.Dense(256)(model)
+    model = layers.Dropout(0.35)(model)
+    output = layers.Dense(1)(model)
+
+    model = Model(inputs=[genotype_inputs], outputs=[output])
+    model.compile(optimizer='Adam', loss='mse', metrics=['acc'])
+    model.summary()
+
+    return model
