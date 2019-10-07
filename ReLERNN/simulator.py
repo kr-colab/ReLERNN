@@ -38,7 +38,7 @@ class Simulator(object):
         winMasks = None,
         maskThresh = 1.0,
         phased = None,
-        phaseError = None
+        phaseError = None,
         ):
 
         self.N = N

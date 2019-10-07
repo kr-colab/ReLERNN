@@ -136,7 +136,6 @@ def main():
     valiDir = os.path.join(projectDir,"vali")
     testDir = os.path.join(projectDir,"test")
     networkDir = os.path.join(projectDir,"networks")
-    vcfDir = os.path.join(projectDir,"splitVCFs")
     bs_resultFile = os.path.join(networkDir,"bootstrapResults.p")
     bs_plotFile = os.path.join(networkDir,"bootstrapPlot.pdf")
     modelWeights = [os.path.join(networkDir,"model.json"),os.path.join(networkDir,"weights.h5")]

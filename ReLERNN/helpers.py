@@ -86,6 +86,13 @@ def find_win_size(winSize, pos, step, winSizeMx):
 
 #-------------------------------------------------------------------------------------------
 
+def force_win_size(winSize, pos):
+    snpsWin=snps_per_win(pos,winSize)
+    mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
+    return [winSize,mn,u,mx,len(snpsWin)]
+
+#-------------------------------------------------------------------------------------------
+
 def maskStats(wins, last_win, mask, maxLen):
     """
     return a three-element list with the first element being the total proportion of the window that is masked,
@@ -256,6 +263,7 @@ def runModels(ModelFuncPointer,
             epochSteps=100,
             validationSteps=1,
             outputNetwork=None,
+            nCPU = 1,
             gpuID = 0):
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
@@ -268,13 +276,47 @@ def runModels(ModelFuncPointer,
     x,y = TrainGenerator.__getitem__(0)
     model = ModelFuncPointer(x,y)
 
+    # Early stopping and saving the best weights
+    callbacks_list = [
+            keras.callbacks.EarlyStopping(
+                monitor='val_loss',
+                verbose=1,
+                min_delta=0.01,
+                patience=100),
+            keras.callbacks.ModelCheckpoint(
+                filepath=outputNetwork[1],
+                monitor='val_loss',
+                save_best_only=True)
+            ]
+
     history = model.fit_generator(TrainGenerator,
         steps_per_epoch= epochSteps,
         epochs=numEpochs,
         validation_data=ValidationGenerator,
         validation_steps=validationSteps,
-        use_multiprocessing=False
+        use_multiprocessing=True,
+        callbacks=callbacks_list,
+        max_queue_size=nCPU,
+        workers=nCPU,
         )
+
+    # Write the network and then open it and load the weights (this should hopefully help the exploding gradients)
+    if(outputNetwork != None):
+        ##serialize model to JSON
+        model_json = model.to_json()
+        with open(outputNetwork[0], "w") as json_file:
+            json_file.write(model_json)
+
+    # load json and create model
+    if(network != None):
+        jsonFILE = open(network[0],"r")
+        loadedModel = jsonFILE.read()
+        jsonFILE.close()
+        model=model_from_json(loadedModel)
+        model.load_weights(network[1])
+    else:
+        print("Error: no pretrained network found!")
+        sys.exit(1)
 
     x,y = TestGenerator.__getitem__(0)
     predictions = model.predict(x)
@@ -284,14 +326,6 @@ def runModels(ModelFuncPointer,
     history.history['predictions'] = np.array(predictions)
     history.history['Y_test'] = np.array(y)
     history.history['name'] = ModelName
-
-    if(outputNetwork != None):
-        ##serialize model to JSON
-        model_json = model.to_json()
-        with open(outputNetwork[0], "w") as json_file:
-            json_file.write(model_json)
-        ##serialize weights to HDF5
-        model.save_weights(outputNetwork[1])
 
     print("results written to: ",resultsFile)
     pickle.dump(history.history, open( resultsFile, "wb" ))
