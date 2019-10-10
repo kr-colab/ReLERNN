@@ -2,7 +2,7 @@
 ## *Recombination Landscape Estimation using Recurrent Neural Networks*
 ====================================================================
 
-ReLERNN uses deep learning to infer the genome-wide landscape of recombination from as few as four idividually sequenced chromosomes, or from allele frequencies infered by pooled sequencing.
+ReLERNN uses deep learning to infer the genome-wide landscape of recombination from as few as four individually sequenced chromosomes, or from allele frequencies inferred by pooled sequencing.
 This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly. The current manuscript detailing ReLERNN can be found [here](https://www.biorxiv.org/content/biorxiv/early/2019/08/16/662247.full.pdf).
 
 ## Recommended installation on linux
@@ -104,7 +104,7 @@ optional arguments:
 
 
 ### Step 2) ReLERNN_TRAIN
-`ReLERNN_TRAIN` takes the simulations created by `ReLERNN_SIMULATE` and uses them to train a recurrent neural network. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analyis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/vcfprefix.pdf`.
+`ReLERNN_TRAIN` takes the simulations created by `ReLERNN_SIMULATE` and uses them to train a recurrent neural network. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analysis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/vcfprefix.pdf`.
 
 The complete list of options used in `ReLERNN_TRAIN` are found below:
 ```
@@ -227,7 +227,7 @@ optional arguments:
 
 
 ### Step 2) ReLERNN_TRAIN_POOL
-`ReLERNN_TRAIN_POOL` takes the simulations created by `ReLERNN_SIMULATE_POOL` and uses them to train a recurrent neural network. The only difference here is that the mean sequecning depth of the pool must be specified using the `--readDepth` argument. You can also specify a minor allele frequency threshold (`--maf`), if a similar threshold was used to generate your POOLFILE. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analyis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN_POOL` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/poolprefix.pdf`.
+`ReLERNN_TRAIN_POOL` takes the simulations created by `ReLERNN_SIMULATE_POOL` and uses them to train a recurrent neural network. The only difference here is that the mean read depth of the pool must be specified using the `--readDepth` argument. You can also specify a minor allele frequency threshold (`--maf`), if a similar threshold was used to generate your POOLFILE. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analysis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN_POOL` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/poolprefix.pdf`.
 
 The complete list of options used in `ReLERNN_TRAIN_POOL` are found below:
 ```
