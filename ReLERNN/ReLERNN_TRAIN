@@ -100,7 +100,7 @@ def main():
             ValidationGenerator=vali_sequence,
             TestGenerator=test_sequence,
             resultsFile=test_resultFile,
-            outputNetwork=[modelSave,weightsSave],
+            network=[modelSave,weightsSave],
             numEpochs=args.nEpochs,
             validationSteps=args.nValSteps,
             nCPU=args.nCPU,

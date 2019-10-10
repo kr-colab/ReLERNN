@@ -10,7 +10,8 @@ from ReLERNN.networks import *
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
-    parser.add_argument('--sequencingDepth',dest='seqD',help='Mean sequencing depth', type=int, default=0)
+    parser.add_argument('--readDepth',dest='seqD',help='Mean read depth of the pool', type=int, default=0)
+    parser.add_argument('--maf',dest='maf',help='discard simulated sites with allele frequencies < maf', type=float, default=0.05)
     parser.add_argument('--nEpochs',dest='nEpochs',help='Maximum number of epochs to train (EarlyStopping is implemented for validation accuracy)', type=int, default=1000)
     parser.add_argument('--nValSteps',dest='nValSteps',help='Number of validation steps', type=int, default=20)
     parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
@@ -72,7 +73,8 @@ def main():
         'derVal':1,
         'realLinePos':True,
         'posPadVal':0,
-        'seqD':args.seqD
+        'seqD':args.seqD,
+        'maf':args.maf
               }
 
 
@@ -107,7 +109,7 @@ def main():
             ValidationGenerator=vali_sequence,
             TestGenerator=test_sequence,
             resultsFile=test_resultFile,
-            outputNetwork=[modelSave,weightsSave],
+            network=[modelSave,weightsSave],
             numEpochs=args.nEpochs,
             validationSteps=args.nValSteps,
             nCPU=args.nCPU,
