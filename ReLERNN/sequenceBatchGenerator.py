@@ -42,7 +42,8 @@ class SequenceBatchGenerator(keras.utils.Sequence):
             posPadVal = 0,
             shuffleExamples = True,
             splitFLAG = False,
-            seqD = None
+            seqD = None,
+            maf = None
             ):
 
         self.treesDirectory = treesDirectory
@@ -66,6 +67,7 @@ class SequenceBatchGenerator(keras.utils.Sequence):
         self.shuffleExamples = shuffleExamples
         self.splitFLAG = splitFLAG
         self.seqD = seqD
+        self.maf = maf
 
         if(shuffleExamples):
             np.random.shuffle(self.indices)
@@ -134,11 +136,20 @@ class SequenceBatchGenerator(keras.utils.Sequence):
             tmp_pos = []
             fqs_list = haps[i].tolist()
             for j in range(len(fqs_list)):
-                z = resample(fqs_list[j], n_samples=self.seqD, replace=True)
-                raw_freq = round(np.count_nonzero(z)/float(len(z)),3)
-                if 0.05 <= raw_freq < 1.0:
+
+                if self.seqD != -9:
+                    ## Resample
+                    z = resample(fqs_list[j], n_samples=self.seqD, replace=True)
+                    raw_freq = round(np.count_nonzero(z)/float(len(z)),3)
+                    if self.maf <= raw_freq < 1.0:
+                        tmp_freqs.append(raw_freq)
+                        tmp_pos.append(positions[i][j])
+                else:
+                    ## Don't resample
+                    raw_freq = round(np.count_nonzero(fqs_list[j])/float(len(fqs_list[j])),3)
                     tmp_freqs.append(raw_freq)
                     tmp_pos.append(positions[i][j])
+
             fqs.append(np.array(tmp_freqs))
             pos.append(np.array(tmp_pos))
 
@@ -267,8 +278,9 @@ class SequenceBatchGenerator(keras.utils.Sequence):
                 haps[i] = self.shuffleIndividuals(haps[i])
 
         if self.seqD:
-            # convert the haps to allele frequecies and pad
+            # simulate pool-sequencing
             if(self.maxLen != None):
+                # convert the haps to allele frequecies and then pad
                 haps,pos = self.padAlleleFqs(haps,pos,
                     maxSNPs=self.maxLen,
                     frameWidth=self.frameWidth,
@@ -282,7 +294,7 @@ class SequenceBatchGenerator(keras.utils.Sequence):
                 return z, targets
         else:
             if(self.maxLen != None):
-                ##then we're probably padding
+                # pad
                 haps,pos = self.pad_HapsPos(haps,pos,
                     maxSNPs=self.maxLen,
                     frameWidth=self.frameWidth,

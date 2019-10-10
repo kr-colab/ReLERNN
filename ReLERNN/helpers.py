@@ -262,7 +262,7 @@ def runModels(ModelFuncPointer,
             numEpochs=10,
             epochSteps=100,
             validationSteps=1,
-            outputNetwork=None,
+            network=None,
             nCPU = 1,
             gpuID = 0):
 
@@ -284,7 +284,7 @@ def runModels(ModelFuncPointer,
                 min_delta=0.01,
                 patience=100),
             keras.callbacks.ModelCheckpoint(
-                filepath=outputNetwork[1],
+                filepath=network[1],
                 monitor='val_loss',
                 save_best_only=True)
             ]
@@ -300,14 +300,14 @@ def runModels(ModelFuncPointer,
         workers=nCPU,
         )
 
-    # Write the network and then open it and load the weights (this should hopefully help the exploding gradients)
-    if(outputNetwork != None):
+    # Write the network
+    if(network != None):
         ##serialize model to JSON
         model_json = model.to_json()
-        with open(outputNetwork[0], "w") as json_file:
+        with open(network[0], "w") as json_file:
             json_file.write(model_json)
 
-    # load json and create model
+    # Load json and create model
     if(network != None):
         jsonFILE = open(network[0],"r")
         loadedModel = jsonFILE.read()
@@ -315,7 +315,7 @@ def runModels(ModelFuncPointer,
         model=model_from_json(loadedModel)
         model.load_weights(network[1])
     else:
-        print("Error: no pretrained network found!")
+        print("Error: model and weights not loaded")
         sys.exit(1)
 
     x,y = TestGenerator.__getitem__(0)

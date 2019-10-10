@@ -12,9 +12,8 @@ from ReLERNN.simulator import *
 
 def main():
     parser = argparse.ArgumentParser()
-    #parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file. Important: Every row must correspond to a biallelic SNP with no missing data!')
     parser.add_argument('-p','--pool',dest='pool',help='Filtered and QC-checked pool file')
-    parser.add_argument('--sampleDepth',dest='samD',help='Mean sample depth', type=int)
+    parser.add_argument('--sampleDepth',dest='samD',help='Number of chromosomes in pool', type=int)
     parser.add_argument('-g','--genome',dest='genome',help='BED-formatted (i.e. zero-based) file corresponding to chromosomes and positions to evaluate')
     parser.add_argument('-m','--mask',dest='mask',help='BED-formatted file corresponding to inaccessible bases', default=None)
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
@@ -23,9 +22,6 @@ def main():
     parser.add_argument('-l','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
     parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Assumed upper bound for the ratio of rho to theta',type=float,default=10.0)
     parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
-    parser.add_argument('--phased',help='Treat genotypes as phased',default=False, action='store_true')
-    parser.add_argument('--unphased',dest='phased',help='Treat genotypes as unphased',action='store_false')
-    parser.add_argument('--phaseError',dest='phaseError',help='Fraction of bases simulated with incorrect phasing',type=float,default=0.0)
     parser.add_argument('--maxWinSize',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
     parser.add_argument('--forceWinSize',dest='forceWinSize',help='USED ONLY FOR TESTING, LEAVE AS DEFAULT',type=int,default=0)
     parser.add_argument('--maskThresh',dest='maskThresh',help='Discard windows where >= maskThresh percent of sites are inaccessible',type=float,default=1.0)
@@ -59,13 +55,10 @@ def main():
     else:
         print("Warning: no demographic history file found. All training data will be simulated under demographic equilibrium.")
         demHist = 0
-    if not args.phased and args.phaseError != 0.0:
-        print("Error: non-zero 'phaseError' cannot be used in conjunction with '--unphased'")
-        sys.exit(1)
     
 
     ## Set up the directory structure to store the simulations data.
-    time.sleep(0)
+    time.sleep(5)
     nProc = args.nCPU
     trainDir = os.path.join(projectDir,"train")
     valiDir = os.path.join(projectDir,"vali")
@@ -139,8 +132,6 @@ def main():
                 'ChromosomeLength':maxLen,
                 'winMasks':win_masks,
                 'maskThresh':args.maskThresh,
-                'phased':args.phased,
-                'phaseError':args.phaseError,
                 'MspDemographics':MspD,
                   }
 
@@ -154,8 +145,6 @@ def main():
             'ChromosomeLength':maxLen,
             'winMasks':win_masks,
             'maskThresh':args.maskThresh,
-            'phased':args.phased,
-            'phaseError':args.phaseError,
                   }
 
 
@@ -202,7 +191,7 @@ def main():
     print("Simulated:\t\t\t%s\t%s\t%s" %(minSegSites, int(sum(SS)/float(len(SS))), maxSegSites))
     for i in range(len(wins)):
         print("Input %s:\t\t%s\t%s\t%s" %(wins[i][0],wins[i][3],wins[i][4],wins[i][5]))
-    print("\n\n***ReLERNN_SIMULATE.py FINISHED!***\n")
+    print("\n\n***ReLERNN_SIMULATE_POOL.py FINISHED!***\n")
 
 
 if __name__ == "__main__":
