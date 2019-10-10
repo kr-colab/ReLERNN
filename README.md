@@ -42,6 +42,13 @@ Note that the parameters used for this example were designed only to test the su
 Please use the guidelines below for the best results when analyzing real data.
 ReLERNN requires the use of a CUDA-Enabled NVIDIA GPU.
 
+You can now test the functionality of ReLERNN for use with pool-seq data by using the following commands:
+
+```
+$ cd examples
+$ ./example_pipeline_pool.sh
+```
+
 ## Estimating a recombination landscape from individually sequenced chromosomes
 
 The ReLERNN pipeline is executed using four commands: `ReLERNN_SIMULATE`, `ReLERNN_TRAIN`, `ReLERNN_PREDICT`, and the optional `ReLERNN_BSCORRECT` (see the [Method flow diagram](./methodFlow.png)).
