@@ -43,15 +43,14 @@ class SequenceBatchGenerator(keras.utils.Sequence):
             shuffleExamples = True,
             splitFLAG = False,
             seqD = None,
-            maf = None
+            maf = None,
+            hotspots = False
             ):
 
         self.treesDirectory = treesDirectory
         self.targetNormalization = targetNormalization
         infoFilename = os.path.join(self.treesDirectory,"info.p")
         self.infoDir = pickle.load(open(infoFilename,"rb"))
-        if(targetNormalization != None):
-            self.normalizedTargets = self.normalizeTargets()
         self.batch_size = batchSize
         self.maxLen = maxLen
         self.frameWidth = frameWidth
@@ -68,6 +67,13 @@ class SequenceBatchGenerator(keras.utils.Sequence):
         self.splitFLAG = splitFLAG
         self.seqD = seqD
         self.maf = maf
+        self.hotspots = hotspots
+
+        if(targetNormalization != None):
+            if self.hotspots:
+                self.normalizedTargets = self.normalizeTargetsBinaryClass()
+            else:
+                self.normalizedTargets = self.normalizeTargets()
 
         if(shuffleExamples):
             np.random.shuffle(self.indices)
@@ -205,6 +211,20 @@ class SequenceBatchGenerator(keras.utils.Sequence):
 
         return nTargets
 
+    def normalizeTargetsBinaryClass(self):
+
+        '''
+        We want to normalize all targets.
+        '''
+
+        norm = self.targetNormalization
+        nTargets = copy.deepcopy(self.infoDir['hotWin'])
+
+        nTargets[nTargets<5] = 0
+        nTargets[nTargets>=5] = 1
+
+        return nTargets.astype(np.uint8)
+
     def normalizeAlleleFqs(self, fqs):
 
         '''
@@ -251,9 +271,6 @@ class SequenceBatchGenerator(keras.utils.Sequence):
 
     def __data_generation(self, batchTreeIndices):
 
-        respectiveNormalizedTargets = [[t] for t in self.normalizedTargets[batchTreeIndices]]
-        targets = np.array(respectiveNormalizedTargets)
-
         haps = []
         pos = []
 
@@ -264,6 +281,9 @@ class SequenceBatchGenerator(keras.utils.Sequence):
             P = np.load(Pfilepath)
             haps.append(H)
             pos.append(P)
+
+        respectiveNormalizedTargets = [[t] for t in self.normalizedTargets[batchTreeIndices]]
+        targets = np.array(respectiveNormalizedTargets)
 
         if(self.realLinePos):
             for p in range(len(pos)):

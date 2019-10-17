@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Predicts the recombination rate for each genomic window in the POOL file
-using the network trained by ReLERNN_TRAIN_POOL.py
+Classifies each genomic window in the VCF file for the presence of recombination rate hotspots
+using a CNN network trained in ReLERNN_TRAIN_HOTSPOT.py
 """
 
 from ReLERNN.imports import *
@@ -11,8 +11,10 @@ from ReLERNN.sequenceBatchGenerator import *
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-p','--pool',dest='pool',help='Filtered and QC-checked pool file')
+    parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file. Important: Every row must correspond to a biallelic SNP with no missing data!')
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
+    parser.add_argument('--phased',help='VCF file is phased',default=False, action='store_true')
+    parser.add_argument('--unphased',dest='phased',help='VCF file is unphased',action='store_false')
     parser.add_argument('--minSites',dest='minS',help='Minimum number of SNPs in a genomic window required to return a prediction', type=int, default = 50)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default = 0)
     args = parser.parse_args()
@@ -24,11 +26,11 @@ def main():
         projectDir = os.getcwd()
     else:
         projectDir = args.outDir
-    trainDir = os.path.join(projectDir,"train")
-    valiDir = os.path.join(projectDir,"vali")
-    testDir = os.path.join(projectDir,"test")
-    networkDir = os.path.join(projectDir,"networks")
-    poolDir = os.path.join(projectDir,"splitPOOLs")
+    trainDir = os.path.join(projectDir,"train_hotspot")
+    valiDir = os.path.join(projectDir,"vali_hotspot")
+    testDir = os.path.join(projectDir,"test_hotspot")
+    networkDir = os.path.join(projectDir,"networks_hotspot")
+    vcfDir = os.path.join(projectDir,"splitVCFs_hotspot")
     modelSave = os.path.join(networkDir,"model.json")
     weightsSave = os.path.join(networkDir,"weights.h5")
 
@@ -46,18 +48,15 @@ def main():
 
     ## Loop through chromosomes and predict
     for i in range(len(wins)):
-        bn=os.path.basename(args.pool)
-        poolFILE=os.path.join(poolDir,bn.replace(".pool","_%s.pool" %(wins[i][0])))
-        print("""Importing POOL: "%s"...""" %(poolFILE))
-        pos,fqs = [], []
-        with open(poolFILE, "r") as fIN:
-            for line in fIN:
-                ar = line.split()
-                pos.append(int(ar[1]))
-                fqs.append(float(ar[2]))
-            chrom = ar[0]
-        pos = np.array(pos)
-        fqs = np.array(fqs)
+        ## Read in the hdf5
+        bn=os.path.basename(args.vcf)
+        h5FILE=os.path.join(vcfDir,bn.replace(".vcf","_%s.hdf5" %(wins[i][0])))
+        print("""Importing HDF5: "%s"...""" %(h5FILE))
+        callset=h5py.File(h5FILE, mode="r")
+        var=allel.VariantChunkedTable(callset["variants"],names=["CHROM","POS"], index="POS")
+        chroms=var["CHROM"]
+        pos=var["POS"]
+        genos=allel.GenotypeChunkedArray(callset["calldata"]["GT"])
 
 
         ## Identify padding required
@@ -74,17 +73,14 @@ def main():
         winSize=wins[i][2]
         batchSize=wins[i][4]
 
-        batchPars = pickle.load(open(os.path.join(networkDir,"batchPars.p"),"rb"))
-        normType = batchPars["targetNormalization"]
-    
 
         ## Set network parameters
         bds_pred_params = {
             'INFO':DsInfoDir,
-            'CHROM':chrom,
+            'CHROM':chroms[0],
             'WIN':winSize,
             'IDs':get_index(pos,winSize),
-            'GT':fqs,
+            'GT':genos,
             'POS':pos,
             'batchSize': batchSize,
             'maxLen': maxSegSites,
@@ -96,25 +92,26 @@ def main():
             'derVal':1,
             'realLinePos':True,
             'posPadVal':0,
-            'normType':normType
+            'phase':args.phased
                   }
 
 
         ### Define sequence batch generator
-        pred_sequence = POOLBatchGenerator(**bds_pred_params)
+        pred_sequence = VCFBatchGenerator(**bds_pred_params)
 
 
-        ## Load trained model and make predictions on pool data
+        ## Load trained model and make predictions on VCF data
         pred_resultFile = os.path.join(projectDir,wins[i][0]+".CHPREDICT.txt")
         load_and_predictVCF(VCFGenerator=pred_sequence,
                 resultsFile=pred_resultFile,
                 network=[modelSave,weightsSave],
                 minS=args.minS,
-                gpuID=args.gpuID)
+                gpuID=args.gpuID,
+                hotspots=True)
 
 
     ## Combine chromosome predictions in whole genome prediction file and rm chromosome files
-    genPredFILE=os.path.join(projectDir,bn.replace(".pool",".PREDICT.txt"))
+    genPredFILE=os.path.join(projectDir,bn.replace(".vcf",".HOTSPOTS.txt"))
     files=[]
     for f in glob.glob(os.path.join(projectDir,"*.CHPREDICT.txt")):
         files.append(f)
@@ -135,7 +132,7 @@ def main():
             os.system(cmd)
 
 
-    print("\n***ReLERNN_PREDICT_POOL.py FINISHED!***\n")
+    print("\n***ReLERNN_PREDICT_HOTSPOT.py FINISHED!***\n")
 
 
 if __name__ == "__main__":

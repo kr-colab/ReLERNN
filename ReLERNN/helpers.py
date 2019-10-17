@@ -220,7 +220,8 @@ def load_and_predictVCF(VCFGenerator,
             resultsFile=None,
             network=None,
             minS = 50,
-            gpuID = 0):
+            gpuID = 0,
+            hotspots = False):
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
 
@@ -238,15 +239,24 @@ def load_and_predictVCF(VCFGenerator,
     x,chrom,win,info,nSNPs = VCFGenerator.__getitem__(0)
     predictions = model.predict(x)
 
-    u=np.mean(info["rho"])
-    sd=np.std(info["rho"])
-    with open(resultsFile, "w") as fOUT:
-        ct=0
-        fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate"))
-        for i in range(len(predictions)):
-            if nSNPs[i] >= minS:
-                fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,nSNPs[i],relu(sd*predictions[i][0]+u)))
-            ct+=win
+    if hotspots:
+        with open(resultsFile, "w") as fOUT:
+            ct=0
+            fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","hotspot"))
+            for i in range(len(predictions)):
+                if nSNPs[i] >= minS:
+                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,nSNPs[i],predictions[i][0]))
+                ct+=win
+    else:
+        u=np.mean(info["rho"])
+        sd=np.std(info["rho"])
+        with open(resultsFile, "w") as fOUT:
+            ct=0
+            fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate"))
+            for i in range(len(predictions)):
+                if nSNPs[i] >= minS:
+                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,nSNPs[i],relu(sd*predictions[i][0]+u)))
+                ct+=win
 
     return None
 
