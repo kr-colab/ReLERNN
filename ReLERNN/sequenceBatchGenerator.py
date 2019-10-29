@@ -308,7 +308,6 @@ class SequenceBatchGenerator(keras.utils.Sequence):
 
                 haps=np.where(haps == -1.0, self.posPadVal,haps)
                 pos=np.where(pos == -1.0, self.posPadVal,pos)
-                np.set_printoptions(threshold=sys.maxsize)
                 z = np.stack((haps,pos), axis=-1)
 
                 return z, targets
@@ -405,11 +404,11 @@ class VCFBatchGenerator(keras.utils.Sequence):
 
     def __getitem__(self, idx):
         GT=self.GT.to_haplotypes()
-        #Is this a haploid or diploid VCF?
         GTB=GT[:,1:2]
         GTB=GTB[0].tolist()
         if len(set(GTB)) == 1 and GTB[0] == -1:
             GT=GT[:,::2] #Select only the first of the genotypes
+        GT = np.where(GT == -1, 2, GT) # Code missing data as 2, these will ultimately end up being transformed to the pad value
 
         if not self.phase:
             np.random.shuffle(np.transpose(GT))

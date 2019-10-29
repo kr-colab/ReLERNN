@@ -20,7 +20,7 @@ def main():
     parser.add_argument('-n','--demographicHistory',dest='dem',help='Output file from either stairwayplot, SMC++, or MSMC',default=None)
     parser.add_argument('-u','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
     parser.add_argument('-l','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
-    parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Assumed upper bound for the ratio of rho to theta',type=float,default=10.0)
+    parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Assumed upper bound for the ratio of rho to theta',type=float,default=1.0)
     parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
     parser.add_argument('--maxWinSize',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
     parser.add_argument('--forceWinSize',dest='forceWinSize',help='USED ONLY FOR TESTING, LEAVE AS DEFAULT',type=int,default=0)

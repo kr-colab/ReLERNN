@@ -36,6 +36,7 @@ class Simulator(object):
         ChromosomeLength = 1e5,
         MspDemographics = None,
         winMasks = None,
+        mdMask = None,
         maskThresh = 1.0,
         phased = None,
         phaseError = None,
@@ -56,6 +57,7 @@ class Simulator(object):
         self.mu = None
         self.segSites = None
         self.winMasks = winMasks
+        self.mdMask = mdMask
         self.maskThresh = maskThresh
         self.phased = None
         self.phaseError = phaseError
@@ -154,6 +156,12 @@ class Simulator(object):
         if self.phaseError:
             H = self.phaseErrorer(H,self.phaseError)
 
+        # If there is a missing data mask, sample from the mask and apply to haps
+        if not self.mdMask is None:
+            mdMask = self.mdMask[np.random.choice(self.mdMask.shape[0], H.shape[0], replace=True)]
+            H = np.ma.masked_array(H, mask=mdMask)
+            H = np.ma.filled(H,2)
+
         # Sample from the genome-wide distribution of masks and mask both positions and genotypes
         if self.winMasks:
             while True:
@@ -206,10 +214,10 @@ class Simulator(object):
         if self.hotspots:
             self.hotWin=np.zeros(numReps)
             for i in range(int(numReps/2.0)):
-                randomTargetParameter = np.random.uniform(5,50)
+                randomTargetParameter = np.random.uniform(50,50)
                 self.hotWin[i] = randomTargetParameter
             for i in range(int(numReps/2.0),numReps):
-                randomTargetParameter = np.random.uniform(1,4)
+                randomTargetParameter = np.random.uniform(1,1)
                 self.hotWin[i] = randomTargetParameter
 
         self.rho=np.empty(numReps)
