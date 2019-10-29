@@ -36,9 +36,12 @@ class Simulator(object):
         ChromosomeLength = 1e5,
         MspDemographics = None,
         winMasks = None,
+        mdMask = None,
         maskThresh = 1.0,
         phased = None,
         phaseError = None,
+        hotspots = False,
+        nHotWins = 10
         ):
 
         self.N = N
@@ -50,12 +53,16 @@ class Simulator(object):
         self.ChromosomeLength = ChromosomeLength
         self.MspDemographics = MspDemographics
         self.rho = None
+        self.hotWin = None
         self.mu = None
         self.segSites = None
         self.winMasks = winMasks
+        self.mdMask = mdMask
         self.maskThresh = maskThresh
         self.phased = None
         self.phaseError = phaseError
+        self.hotspots = hotspots
+        self.nHotWins = nHotWins
 
 
     def runOneMsprimeSim(self,simNum,direc):
@@ -68,26 +75,74 @@ class Simulator(object):
         MR = self.mu[simNum]
         RR = self.rho[simNum]
 
-        if self.MspDemographics:
-            DE = self.MspDemographics["demographic_events"]
-            PC = self.MspDemographics["population_configurations"]
-            MM = self.MspDemographics["migration_matrix"]
-            ts = msp.simulate(
-                length=self.ChromosomeLength,
-                mutation_rate=MR,
-                recombination_rate=RR,
-                population_configurations = PC,
-                migration_matrix = MM,
-                demographic_events = DE
-            )
+        if self.hotspots:
+            hotspotMultiplier = self.hotWin[simNum]
+
+            mapName = str(simNum) + "_map.txt"
+            mapPath = os.path.join(direc,mapName)
+
+            nWins = self.nHotWins
+            hotSpotWin = np.random.randint(nWins)
+
+            winRates = np.empty(nWins)
+
+            breaks = np.linspace(0,self.ChromosomeLength, num = nWins + 1)
+            with open(mapPath, "w") as fOUT:
+                fOUT.write("Chromosome\tstartPos\tRate\n")
+                for i in range(len(breaks)):
+                    if i == hotSpotWin:
+                        baseRate = RR * hotspotMultiplier * 10**8
+                        winRates[i] = baseRate
+                    elif i == nWins:
+                        baseRate = 0.0
+                    else:
+                        baseRate = RR * 10**8
+                        winRates[i] = baseRate
+                    fOUT.write("{}\t{}\t{}\n".format("chr",int(breaks[i]),baseRate))
+
+            recomb_map = msp.RecombinationMap.read_hapmap(mapPath)
+
+            if self.MspDemographics:
+                DE = self.MspDemographics["demographic_events"]
+                PC = self.MspDemographics["population_configurations"]
+                MM = self.MspDemographics["migration_matrix"]
+                ts = msp.simulate(
+                    mutation_rate=MR,
+                    population_configurations = PC,
+                    migration_matrix = MM,
+                    demographic_events = DE,
+                    recombination_map = recomb_map
+                )
+
+            else:
+                ts = msp.simulate(
+                    sample_size = self.N,
+                    Ne = self.Ne,
+                    mutation_rate=MR,
+                    recombination_map = recomb_map
+                )
+
         else:
-            ts = msp.simulate(
-                sample_size = self.N,
-                Ne = self.Ne,
-                length=self.ChromosomeLength,
-                mutation_rate=MR,
-                recombination_rate=RR
-            )
+            if self.MspDemographics:
+                DE = self.MspDemographics["demographic_events"]
+                PC = self.MspDemographics["population_configurations"]
+                MM = self.MspDemographics["migration_matrix"]
+                ts = msp.simulate(
+                    length=self.ChromosomeLength,
+                    mutation_rate=MR,
+                    recombination_rate=RR,
+                    population_configurations = PC,
+                    migration_matrix = MM,
+                    demographic_events = DE
+                )
+            else:
+                ts = msp.simulate(
+                    sample_size = self.N,
+                    Ne = self.Ne,
+                    length=self.ChromosomeLength,
+                    mutation_rate=MR,
+                    recombination_rate=RR
+                )
 
         # Convert tree sequence to genotype matrix, and position matrix
         H = ts.genotype_matrix()
@@ -100,6 +155,12 @@ class Simulator(object):
         # Simulate phasing error
         if self.phaseError:
             H = self.phaseErrorer(H,self.phaseError)
+
+        # If there is a missing data mask, sample from the mask and apply to haps
+        if not self.mdMask is None:
+            mdMask = self.mdMask[np.random.choice(self.mdMask.shape[0], H.shape[0], replace=True)]
+            H = np.ma.masked_array(H, mask=mdMask)
+            H = np.ma.filled(H,2)
 
         # Sample from the genome-wide distribution of masks and mask both positions and genotypes
         if self.winMasks:
@@ -150,6 +211,15 @@ class Simulator(object):
 
         (str,str) -> None
         '''
+        if self.hotspots:
+            self.hotWin=np.zeros(numReps)
+            for i in range(int(numReps/2.0)):
+                randomTargetParameter = np.random.uniform(50,50)
+                self.hotWin[i] = randomTargetParameter
+            for i in range(int(numReps/2.0),numReps):
+                randomTargetParameter = np.random.uniform(1,1)
+                self.hotWin[i] = randomTargetParameter
+
         self.rho=np.empty(numReps)
         for i in range(numReps):
             randomTargetParameter = np.random.uniform(self.priorLowsRho,self.priorHighsRho)

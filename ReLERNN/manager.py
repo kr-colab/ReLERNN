@@ -183,15 +183,23 @@ class Manager(object):
                     chroms=var["CHROM"]
                     pos=var["POS"]
                     genos=allel.GenotypeChunkedArray(callset["calldata"]["GT"])
-
                     #Is this a haploid or diploid VCF?
                     GT=genos.to_haplotypes()
-                    GT=GT[:,1:2]
-                    GT=GT[0].tolist()
-                    if len(set(GT)) == 1 and GT[0] == -1:
+                    GTB=GT[:,1:2]
+                    GTB=GTB[0].tolist()
+
+                    if len(set(GTB)) == 1 and GTB[0] == -1:
                         nSamps=len(genos[0])
+                        GT=GT[:,::2] #Select only the first of the genotypes
                     else:
                         nSamps=len(genos[0])*2
+
+                    ## if there is any missing data write a missing data boolean mask to hdf5
+                    md_mask = GT < 0
+                    if md_mask.any():
+                        md_maskFile=os.path.join(self.vcfDir, os.path.basename(self.vcf).replace(".vcf","_%s_md_mask.hdf5" %(chromosomes[i])))
+                        with h5py.File(md_maskFile, "w") as hf:
+                            hf.create_dataset("mask", data=md_mask)
 
                     ## Identify ideal training parameters
                     if self.forceWinSize != 0:

@@ -43,15 +43,14 @@ class SequenceBatchGenerator(keras.utils.Sequence):
             shuffleExamples = True,
             splitFLAG = False,
             seqD = None,
-            maf = None
+            maf = None,
+            hotspots = False
             ):
 
         self.treesDirectory = treesDirectory
         self.targetNormalization = targetNormalization
         infoFilename = os.path.join(self.treesDirectory,"info.p")
         self.infoDir = pickle.load(open(infoFilename,"rb"))
-        if(targetNormalization != None):
-            self.normalizedTargets = self.normalizeTargets()
         self.batch_size = batchSize
         self.maxLen = maxLen
         self.frameWidth = frameWidth
@@ -68,6 +67,13 @@ class SequenceBatchGenerator(keras.utils.Sequence):
         self.splitFLAG = splitFLAG
         self.seqD = seqD
         self.maf = maf
+        self.hotspots = hotspots
+
+        if(targetNormalization != None):
+            if self.hotspots:
+                self.normalizedTargets = self.normalizeTargetsBinaryClass()
+            else:
+                self.normalizedTargets = self.normalizeTargets()
 
         if(shuffleExamples):
             np.random.shuffle(self.indices)
@@ -205,6 +211,20 @@ class SequenceBatchGenerator(keras.utils.Sequence):
 
         return nTargets
 
+    def normalizeTargetsBinaryClass(self):
+
+        '''
+        We want to normalize all targets.
+        '''
+
+        norm = self.targetNormalization
+        nTargets = copy.deepcopy(self.infoDir['hotWin'])
+
+        nTargets[nTargets<5] = 0
+        nTargets[nTargets>=5] = 1
+
+        return nTargets.astype(np.uint8)
+
     def normalizeAlleleFqs(self, fqs):
 
         '''
@@ -251,9 +271,6 @@ class SequenceBatchGenerator(keras.utils.Sequence):
 
     def __data_generation(self, batchTreeIndices):
 
-        respectiveNormalizedTargets = [[t] for t in self.normalizedTargets[batchTreeIndices]]
-        targets = np.array(respectiveNormalizedTargets)
-
         haps = []
         pos = []
 
@@ -264,6 +281,9 @@ class SequenceBatchGenerator(keras.utils.Sequence):
             P = np.load(Pfilepath)
             haps.append(H)
             pos.append(P)
+
+        respectiveNormalizedTargets = [[t] for t in self.normalizedTargets[batchTreeIndices]]
+        targets = np.array(respectiveNormalizedTargets)
 
         if(self.realLinePos):
             for p in range(len(pos)):
@@ -288,7 +308,6 @@ class SequenceBatchGenerator(keras.utils.Sequence):
 
                 haps=np.where(haps == -1.0, self.posPadVal,haps)
                 pos=np.where(pos == -1.0, self.posPadVal,pos)
-                np.set_printoptions(threshold=sys.maxsize)
                 z = np.stack((haps,pos), axis=-1)
 
                 return z, targets
@@ -385,11 +404,11 @@ class VCFBatchGenerator(keras.utils.Sequence):
 
     def __getitem__(self, idx):
         GT=self.GT.to_haplotypes()
-        #Is this a haploid or diploid VCF?
         GTB=GT[:,1:2]
         GTB=GTB[0].tolist()
         if len(set(GTB)) == 1 and GTB[0] == -1:
             GT=GT[:,::2] #Select only the first of the genotypes
+        GT = np.where(GT == -1, 2, GT) # Code missing data as 2, these will ultimately end up being transformed to the pad value
 
         if not self.phase:
             np.random.shuffle(np.transpose(GT))
