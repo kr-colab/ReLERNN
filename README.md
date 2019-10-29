@@ -54,7 +54,7 @@ $ ./example_pipeline_pool.sh
 The ReLERNN pipeline is executed using four commands: `ReLERNN_SIMULATE`, `ReLERNN_TRAIN`, `ReLERNN_PREDICT`, and the optional `ReLERNN_BSCORRECT` (see the [Method flow diagram](./methodFlow.png)).
 
 ### Before running ReLERNN
-ReLERNN takes as input a VCF file of biallelic variants. It is critical that sites with more than two alleles and sites with missing/masked data are filtered from the VCF before running ReLERNN. Additionally, users should use appropriate QC techniques (filtering low-quality variants, etc.) before running ReLERNN.
+ReLERNN takes as input a VCF file of biallelic variants. Users should use appropriate QC techniques (filtering low-quality variants, etc.) and remove non-biallelic variants before running ReLERNN. However, it is now possible to run ReLERNN on VCFs with missing data.
 
 If you want to make predictions based on equilibrium simulations, you can skip ahead to executing `ReLERNN_SIMULATE`.
 While ReLERNN is generally robust to demographic model misspecification, prediction accuracy may potentially be improved by simulating the training set under a demographic history that accurately matches that of your sample. ReLERNN optionally takes the raw output files from three popular demographic history inference programs ([stairwayplot_v1](https://sites.google.com/site/jpopgen/stairway-plot), [SMC++](https://github.com/popgenmethods/smcpp), and [MSMC](https://github.com/stschiff/msmc)), and simulates a training set under these histories. It is up to the user to perform the proper due diligence to ensure that the population size histories reported by these programs are sound. In our opinion, unless you know exactly how these programs work and you expect your data to represent a history dramatically different from equilibrium, you are better off skipping this step and training ReLERNN on equilibrium simulations. Once you have run one of the demographic history inference programs listed above, you simply provide the raw output file from that program to ReLERNN_SIMULATE using the `--demographicHistory` option.
@@ -63,7 +63,7 @@ While ReLERNN is generally robust to demographic model misspecification, predict
 ### Step 1) ReLERNN_SIMULATE
 `ReLERNN_SIMULATE` reads your VCF file and splits it by chromosome. The genomic windows to evaluate must be specified by providing a BED file of said positions using the `--genome` argument. A BED-formatted accessibility mask may be provided using the `--mask` option. Use the `--phased` or `--unphased` flag to train using phased or unphased genotypes (the default is unphased). It is required that the VCF file use the extension `.vcf`. The prefix of that file will serve as the prefix used for all output files (e.g. running ReLERNN on the file `population7.vcf` will generate the result file `population7.PREDICT.txt`). It is strongly recommended that you use the default setting for `--maxWinSize`, larger values can cause training to fail and smaller values can result in lower accuracy. Users are required to provide an estimate of the per-base mutation rate for your sample, along with an estimate for generation time (in years). If you previously ran one of the demographic history inference programs listed above, just use the same values that you used for them. This is also where you will point to the output from said program, using `--demographicHistory`. If you are not simulating under an inferred history, simply do not include this option. Importantly, you can also set a value for the maximum recombination rate to be simulated using `--upperRhoThetaRatio`. If you have an a priori estimate for an upper bound to the ratio of rho to theta go ahead and set this here. Keep in mind that higher values will dramatically slow the coalescent simulations. We recommend using the default number of train/test/validation simulation examples, but if you want to simulate more examples, go right ahead. `ReLERNN_SIMULATE` then uses msprime to simulate 100k training examples and 1k validation and test examples. All output files will be generated in subdirectories within the path provided to `--projectDir`. It is required that you use the same projectDir for all four ReLERNN commands. If you want to run ReLERNN of multiple populations/taxa, you can run them independently using a unique projectDir for each. This step is simulation heavy and runtimes will strongly depend on the inferred population size.
 
-The complete list of options used in `ReLERNN_SIMULATE` are found below:
+The complete list of arguments used in `ReLERNN_SIMULATE` is found below:
 ```
 ReLERNN_SIMULATE -h
 
@@ -113,7 +113,7 @@ optional arguments:
 ### Step 2) ReLERNN_TRAIN
 `ReLERNN_TRAIN` takes the simulations created by `ReLERNN_SIMULATE` and uses them to train a recurrent neural network. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analysis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/vcfprefix.pdf`.
 
-The complete list of options used in `ReLERNN_TRAIN` are found below:
+The complete list of arguments used in `ReLERNN_TRAIN` is found below:
 ```
 ReLERNN_TRAIN -h
 
@@ -137,7 +137,7 @@ optional arguments:
 `ReLERNN_PREDICT` now takes the same VCF file you used in `ReLERNN_SIMULATE` and predicts per-base recombination rates in non-overlapping windows across the genome. The output file of predictions will be created as `$/projectDir/vcfprefix.PREDICT.txt`. It is important to note that the window size used for predictions might be different for different chromosomes. A complete list of the window sizes used for each chromosome can be found in third column of `$/projectDir/networks/windowSizes.txt`. Use the optional `--minSites` argument to exclude windows with fewer than the desired number of SNPs. If you are not interested in estimating confidence intervals around the predictions, your ReLERNN analysis is now finished.
 
 
-The complete list of options used in `ReLERNN_PREDICT` are found below:
+The complete list of arguments used in `ReLERNN_PREDICT` is found below:
 ```
 ReLERNN_PREDICT -h
 
@@ -160,7 +160,7 @@ optional arguments:
 ### Optional Step 4) ReLERNN_BSCORRECT
 However, you might want to have an idea of the uncertainty around your predictions. This is where `ReLERNN_BSCORRECT` comes in. `ReLERNN_BSCORRECT` generates 95% confidence intervals around each prediction, and additionally attempts to correct for systematic bias ([see Materials and Methods](https://www.biorxiv.org/content/biorxiv/early/2019/08/16/662247.full.pdf)). It does this by simulated a set of `--nReps` examples at each of `nSlice` recombination rate bins. It then uses the network that was trained in `ReLERNN_TRAIN` and estimates the distribution of predictions around each know recombination rate. The result is both an estimate of uncertainty, and a prediction that has been slightly corrected to account for biases in how the network predicts in this area of parameter space. The resulting file is created as `$/projectDir/vcfprefix.PREDICT.BSCORRECT.txt`, and is formatted similarly to `$/projectDir/vcfprefix.PREDICT.txt`, with the addition of columns for the low and high 95CI bounds. Note that this step is simulation heavy and runtimes can be slow.
 
-The complete list of options used in `ReLERNN_BSCORRECT` are found below:
+The complete list of arguments used in `ReLERNN_BSCORRECT` is found below:
 ```
 ReLERNN_BSCORRECT -h
 
@@ -192,7 +192,7 @@ While ReLERNN is generally robust to demographic model misspecification, predict
 ### Step 1) ReLERNN_SIMULATE_POOL
 `ReLERNN_SIMULATE_POOL` reads your POOLFILE and splits it by chromosome. The number of chromosomes in the pool must be specified using the `--sampleDepth` argument. The genomic windows to evaluate must be specified by providing a BED file of said positions using the `--genome` argument. A BED-formatted accessibility mask may be provided using the `--mask` option. It is required that the POOLFILE use the extension `.pool`. The prefix of that file will serve as the prefix used for all output files (e.g. running ReLERNN on the file `population7.pool` will generate the result file `population7.PREDICT.txt`). It is strongly recommended that you use the default setting for `--maxWinSize`, larger values can cause training to fail and smaller values can result in lower accuracy. Users are required to provide an estimate of the per-base mutation rate for your sample, along with an estimate for generation time (in years). If you previously ran one of the demographic history inference programs listed above, just use the same values that you used for them. This is also where you will point to the output from said program, using `--demographicHistory`. If you are not simulating under an inferred history, simply do not include this option. Importantly, you can also set a value for the maximum recombination rate to be simulated using `--upperRhoThetaRatio`. If you have an a priori estimate for an upper bound to the ratio of rho to theta go ahead and set this here. Keep in mind that higher values will dramatically slow the coalescent simulations. We recommend using the default number of train/test/validation simulation examples, but if you want to simulate more examples, go right ahead. `ReLERNN_SIMULATE_POOL` then uses msprime to simulate 100k training examples and 1k validation and test examples. All output files will be generated in subdirectories within the path provided to `--projectDir`. It is required that you use the same projectDir for all four ReLERNN commands. If you want to run ReLERNN of multiple populations/taxa, you can run them independently using a unique projectDir for each. This step is simulation heavy and runtimes will strongly depend on the inferred population size.
 
-The complete list of options used in `ReLERNN_SIMULATE_POOL` are found below:
+The complete list of arguments used in `ReLERNN_SIMULATE_POOL` is found below:
 ```
 ReLERNN_SIMULATE_POOL -h
 
@@ -236,7 +236,7 @@ optional arguments:
 ### Step 2) ReLERNN_TRAIN_POOL
 `ReLERNN_TRAIN_POOL` takes the simulations created by `ReLERNN_SIMULATE_POOL` and uses them to train a recurrent neural network. The only difference here is that the mean read depth of the pool must be specified using the `--readDepth` argument. You can also specify a minor allele frequency threshold (`--maf`), if a similar threshold was used to generate your POOLFILE. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analysis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN_POOL` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/poolprefix.pdf`.
 
-The complete list of options used in `ReLERNN_TRAIN_POOL` are found below:
+The complete list of arguments used in `ReLERNN_TRAIN_POOL` is found below:
 ```
 ReLERNN_TRAIN_POOL -h
 
@@ -263,7 +263,7 @@ optional arguments:
 `ReLERNN_PREDICT_POOL` now takes the same POOL file you used in `ReLERNN_SIMULATE_POOL` and predicts per-base recombination rates in non-overlapping windows across the genome. The output file of predictions will be created as `$/projectDir/poolprefix.PREDICT.txt`. It is important to note that the window size used for predictions might be different for different chromosomes. A complete list of the window sizes used for each chromosome can be found in third column of `$/projectDir/networks/windowSizes.txt`. Use the optional `--minSites` argument to exclude windows with fewer than the desired number of SNPs. If you are not interested in estimating confidence intervals around the predictions, your ReLERNN analysis is now finished.
 
 
-The complete list of options used in `ReLERNN_PREDICT_POOL` are found below:
+The complete list of arguments used in `ReLERNN_PREDICT_POOL` is found below:
 ```
 ReLERNN_PREDICT_POOL -h
 
@@ -284,7 +284,7 @@ optional arguments:
 ### Optional Step 4) ReLERNN_BSCORRECT
 This step is exactly the same as in ReLERNN for individually sequenced chromosomes (above).
 
-The complete list of options used in `ReLERNN_BSCORRECT` are found below:
+The complete list of arguments used in `ReLERNN_BSCORRECT` is found below:
 ```
 ReLERNN_BSCORRECT -h
 
