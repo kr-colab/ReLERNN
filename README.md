@@ -14,7 +14,7 @@ This is done with the following command:
 ```
 $ pip install ReLERNN
 ```
-Please note that the version of ReLERNN installed via pip will be older than the version available in this repo, and therefore the commands for running ReLERNN may use slightly different arguments/options.
+Please note that the version of ReLERNN installed via pip may be older than the version available in this repo, and therefore the commands for running ReLERNN may use slightly different arguments/options.
 For the bleeding edge version of ReLERNN, you should clone directly from github and install via setup.py using the following commands: 
 
 ```
