@@ -12,8 +12,10 @@ import copy
 import argparse
 import h5py
 import allel
+import time
 
 from sklearn.neighbors import NearestNeighbors
+from sklearn.utils import resample
 
 import matplotlib as mpl
 mpl.use('pdf')

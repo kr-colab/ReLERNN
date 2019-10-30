@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""Trains a network on data simulated by ReLERNN_SIMULATE.py"""
+"""Trains a network on data simulated by ReLERNN_SIMULATE_HOTSPOT.py"""
 
 from ReLERNN.imports import *
 from ReLERNN.helpers import *
@@ -23,10 +23,10 @@ def main():
         projectDir = os.getcwd()
     else:
         projectDir = args.outDir
-    trainDir = os.path.join(projectDir,"train")
-    valiDir = os.path.join(projectDir,"vali")
-    testDir = os.path.join(projectDir,"test")
-    networkDir = os.path.join(projectDir,"networks")
+    trainDir = os.path.join(projectDir,"train_hotspot")
+    valiDir = os.path.join(projectDir,"vali_hotspot")
+    testDir = os.path.join(projectDir,"test_hotspot")
+    networkDir = os.path.join(projectDir,"networks_hotspot")
 
 
     ## Define output files
@@ -65,7 +65,8 @@ def main():
         'derVal':1,
         'realLinePos':True,
         'posPadVal':0,
-        'seqD':None
+        'seqD':None,
+        'hotspots':True
               }
 
 
@@ -93,8 +94,8 @@ def main():
 
 
     ## Train network
-    runModels(ModelFuncPointer=GRU_TUNED84,
-            ModelName="GRU_TUNED84",
+    runModels(ModelFuncPointer=HOTSPOT_CLASSIFY,
+            ModelName="HOTSPOT_CLASSIFY",
             TrainDir=trainDir,
             TrainGenerator=train_sequence,
             ValidationGenerator=vali_sequence,
@@ -111,7 +112,7 @@ def main():
     plotResults(resultsFile=test_resultFile,saveas=test_resultFig)
 
 
-    print("\n***ReLERNN_TRAIN.py FINISHED!***\n")
+    print("\n***ReLERNN_TRAIN_HOTSPOT.py FINISHED!***\n")
 
 if __name__ == "__main__":
 	main()

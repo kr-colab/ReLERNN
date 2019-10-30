@@ -4,8 +4,201 @@ Authors: Jared Galloway, Jeff Adrion
 '''
 
 from ReLERNN.imports import *
-from ReLERNN.simulator import *
-from ReLERNN.sequenceBatchGenerator import *
+
+#-------------------------------------------------------------------------------------------
+
+def assign_task(mpID, task_q, nProcs):
+    c,i,nth_job=0,0,1
+    while (i+1)*nProcs <= len(mpID):
+        i+=1
+    nP1=nProcs-(len(mpID)%nProcs)
+    for j in range(nP1):
+        task_q.put((mpID[c:c+i], nth_job))
+        nth_job += 1
+        c=c+i
+    for j in range(nProcs-nP1):
+        task_q.put((mpID[c:c+i+1], nth_job))
+        nth_job += 1
+        c=c+i+1
+
+#-------------------------------------------------------------------------------------------
+
+def create_procs(nProcs, task_q, result_q, params, worker):
+    pids = []
+    for _ in range(nProcs):
+        p = mp.Process(target=worker, args=(task_q, result_q, params))
+        p.daemon = True
+        p.start()
+        pids.append(p)
+    return pids
+
+#-------------------------------------------------------------------------------------------
+
+def get_corrected_index(L,N):
+    idx,outN="",""
+    dist=float("inf")
+    for i in range(len(L)):
+        D=abs(N-L[i])
+        if D < dist:
+            idx=i
+            outN=L[i]
+            dist=D
+    return [idx,outN]
+
+#-------------------------------------------------------------------------------------------
+
+def get_corrected(rate,bs):
+    idx=get_corrected_index(bs["Q2"],rate)
+    CI95LO=bs["CI95LO"][idx[0]]
+    CI95HI=bs["CI95HI"][idx[0]]
+    cRATE=relu(rate+(bs["rho"][idx[0]]-idx[1]))
+    ciHI=relu(cRATE+(CI95HI-idx[1]))
+    ciLO=relu(cRATE+(CI95LO-idx[1]))
+    return [cRATE,ciLO,ciHI]
+
+#-------------------------------------------------------------------------------------------
+
+def get_index(pos, winSize):
+    y=snps_per_win(pos,winSize)
+    st=0
+    indices=[]
+    for i in range(len(y)):
+        indices.append([st,st+y[i]])
+        st+=y[i]
+    return indices
+
+#-------------------------------------------------------------------------------------------
+
+def snps_per_win(pos, window_size):
+    bins = np.arange(1, pos.max()+window_size, window_size) #use 1-based coordinates, per VCF standard
+    y,x = np.histogram(pos,bins=bins)
+    return y
+
+#-------------------------------------------------------------------------------------------
+
+def find_win_size(winSize, pos, step, winSizeMx):
+    snpsWin=snps_per_win(pos,winSize)
+    mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
+    if mx <= winSizeMx:
+        return [winSize,mn,u,mx,len(snpsWin)]
+    else:
+        return [mn,u,mx]
+
+#-------------------------------------------------------------------------------------------
+
+def force_win_size(winSize, pos):
+    snpsWin=snps_per_win(pos,winSize)
+    mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
+    return [winSize,mn,u,mx,len(snpsWin)]
+
+#-------------------------------------------------------------------------------------------
+
+def maskStats(wins, last_win, mask, maxLen):
+    """
+    return a three-element list with the first element being the total proportion of the window that is masked,
+    the second element being a list of masked positions that are relative to the windown start=0 and the window end = window length,
+    and the third being the last window before breaking to expidite the next loop
+    """
+    chrom = wins[0].split(":")[0]
+    a = wins[1]
+    L = wins[2]
+    b = a + L
+    prop = [0.0,[],0]
+    try:
+        for i in range(last_win, len(mask[chrom])):
+            x, y = mask[chrom][i][0], mask[chrom][i][1]
+            if y < a:
+                continue
+            if b < x:
+                return prop
+            else:  # i.e. [a--b] and [x--y] overlap
+                if a >= x and b <= y:
+                    return [1.0, [[0,maxLen]], i]
+                elif a >= x and b > y:
+                    win_prop = (y-a)/float(b-a)
+                    prop[0] += win_prop
+                    prop[1].append([0,int(win_prop * maxLen)])
+                    prop[2] = i
+                elif b <= y and a < x:
+                    win_prop = (b-x)/float(b-a)
+                    prop[0] += win_prop
+                    prop[1].append([int((1-win_prop)*maxLen),maxLen])
+                    prop[2] = i
+                else:
+                    win_prop = (y-x)/float(b-a)
+                    prop[0] += win_prop
+                    prop[1].append([int(((x-a)/float(b-a))*maxLen), int(((y-a)/float(b-a))*maxLen)])
+                    prop[2] = i
+        return prop
+    except KeyError:
+        return prop
+
+#-------------------------------------------------------------------------------------------
+
+def check_demHist(path):
+    fTypeFlag = -9
+    with open(path, "r") as fIN:
+        for line in fIN:
+            if line.startswith("mutation_per_site"):
+                fTypeFlag = 1
+                break
+            if line.startswith("label") and "plot_type" in line:
+                fTypeFlag = 2
+                break
+            if line.startswith("label") and not "plot_type" in line:
+                fTypeFlag = 3
+                break
+    return fTypeFlag
+
+#-------------------------------------------------------------------------------------------
+
+def convert_demHist(path, nSamps, gen, fType):
+    swp, PC, DE = [],[],[]
+    # Convert stairwayplot to msp demographic_events
+    if fType == 1:
+        with open(path, "r") as fIN:
+            flag=0
+            lCt=0
+            for line in fIN:
+                if flag == 1:
+                    if lCt % 2 == 0:
+                        swp.append(line.split())
+                    lCt+=1
+                if line.startswith("mutation_per_site"):
+                    flag=1
+        N0 = int(float(swp[0][6]))
+        for i in range(len(swp)):
+            if i == 0:
+                PC.append(msp.PopulationConfiguration(sample_size=nSamps, initial_size=N0))
+            else:
+                DE.append(msp.PopulationParametersChange(time=int(float(swp[i][5])/float(gen)), initial_size=int(float(swp[i][6])), population=0))
+    ## Convert smc++ or MSMC results to msp demographic_events
+    if fType == 2 or fType == 3:
+        with open(path, "r") as fIN:
+            fIN.readline()
+            for line in fIN:
+                ar=line.split(",")
+                swp.append([int(float(ar[1])/gen),int(float(ar[2]))])
+        N0 = swp[0][1]
+        for i in range(len(swp)):
+            if i == 0:
+                PC.append(msp.PopulationConfiguration(sample_size=nSamps, initial_size=N0))
+            else:
+                DE.append(msp.PopulationParametersChange(time=swp[i][0], initial_size=swp[i][1], population=0))
+    dd=msp.DemographyDebugger(population_configurations=PC,
+            demographic_events=DE)
+    print("Simulating under the following population size history:")
+    dd.print_history()
+    MspD = {"population_configurations" : PC,
+        "migration_matrix" : None,
+        "demographic_events" : DE}
+    if MspD:
+        return MspD
+    else:
+        print("Error in converting demographic history file.")
+        sys.exit(1)
+
+#-------------------------------------------------------------------------------------------
 
 def relu(x):
     return max(0,x)
@@ -26,7 +219,9 @@ def zscoreTargets(self):
 def load_and_predictVCF(VCFGenerator,
             resultsFile=None,
             network=None,
-            gpuID = 0):
+            minS = 50,
+            gpuID = 0,
+            hotspots = False):
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
 
@@ -44,15 +239,24 @@ def load_and_predictVCF(VCFGenerator,
     x,chrom,win,info,nSNPs = VCFGenerator.__getitem__(0)
     predictions = model.predict(x)
 
-    u=np.mean(info["rho"])
-    sd=np.std(info["rho"])
-    with open(resultsFile, "w") as fOUT:
-        ct=0
-        fOUT.write("%s\t%s\t%s\t%s\n" %("chrom","start","end","recombRate"))
-        for i in range(len(predictions)):
-            if nSNPs[i] >= 20:
-                fOUT.write("%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,relu(sd*predictions[i][0]+u)))
-            ct+=win
+    if hotspots:
+        with open(resultsFile, "w") as fOUT:
+            ct=0
+            fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","hotspot"))
+            for i in range(len(predictions)):
+                if nSNPs[i] >= minS:
+                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,nSNPs[i],predictions[i][0]))
+                ct+=win
+    else:
+        u=np.mean(info["rho"])
+        sd=np.std(info["rho"])
+        with open(resultsFile, "w") as fOUT:
+            ct=0
+            fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate"))
+            for i in range(len(predictions)):
+                if nSNPs[i] >= minS:
+                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,nSNPs[i],relu(sd*predictions[i][0]+u)))
+                ct+=win
 
     return None
 
@@ -68,7 +272,8 @@ def runModels(ModelFuncPointer,
             numEpochs=10,
             epochSteps=100,
             validationSteps=1,
-            outputNetwork=None,
+            network=None,
+            nCPU = 1,
             gpuID = 0):
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
@@ -81,13 +286,47 @@ def runModels(ModelFuncPointer,
     x,y = TrainGenerator.__getitem__(0)
     model = ModelFuncPointer(x,y)
 
+    # Early stopping and saving the best weights
+    callbacks_list = [
+            keras.callbacks.EarlyStopping(
+                monitor='val_loss',
+                verbose=1,
+                min_delta=0.01,
+                patience=100),
+            keras.callbacks.ModelCheckpoint(
+                filepath=network[1],
+                monitor='val_loss',
+                save_best_only=True)
+            ]
+
     history = model.fit_generator(TrainGenerator,
         steps_per_epoch= epochSteps,
         epochs=numEpochs,
         validation_data=ValidationGenerator,
         validation_steps=validationSteps,
-        use_multiprocessing=False
+        use_multiprocessing=True,
+        callbacks=callbacks_list,
+        max_queue_size=nCPU,
+        workers=nCPU,
         )
+
+    # Write the network
+    if(network != None):
+        ##serialize model to JSON
+        model_json = model.to_json()
+        with open(network[0], "w") as json_file:
+            json_file.write(model_json)
+
+    # Load json and create model
+    if(network != None):
+        jsonFILE = open(network[0],"r")
+        loadedModel = jsonFILE.read()
+        jsonFILE.close()
+        model=model_from_json(loadedModel)
+        model.load_weights(network[1])
+    else:
+        print("Error: model and weights not loaded")
+        sys.exit(1)
 
     x,y = TestGenerator.__getitem__(0)
     predictions = model.predict(x)
@@ -97,14 +336,6 @@ def runModels(ModelFuncPointer,
     history.history['predictions'] = np.array(predictions)
     history.history['Y_test'] = np.array(y)
     history.history['name'] = ModelName
-
-    if(outputNetwork != None):
-        ##serialize model to JSON
-        model_json = model.to_json()
-        with open(outputNetwork[0], "w") as json_file:
-            json_file.write(model_json)
-        ##serialize weights to HDF5
-        model.save_weights(outputNetwork[1])
 
     print("results written to: ",resultsFile)
     pickle.dump(history.history, open( resultsFile, "wb" ))
@@ -184,13 +415,6 @@ def simplifyTreeSequenceOnSubSampleSet_stub(ts,numSamples):
     ts = ts.simplify(sample_nodes)
 
     return ts
-
-#-------------------------------------------------------------------------------------------
-
-def shuffleIndividuals(x):
-    t = np.arange(x.shape[1])
-    np.random.shuffle(t)
-    return x[:,t]
 
 #-------------------------------------------------------------------------------------------
 
@@ -324,8 +548,6 @@ def plotResults(resultsFile,saveas):
     This function plots the results of the final test set predictions,
     as well as validation loss as a function of Epochs during training.
 
-    str,str -> None
-
     '''
 
     plt.rc('font', family='serif', serif='Times')
@@ -409,111 +631,6 @@ def unNormalize(mean,sd,data):
 
 #-------------------------------------------------------------------------------------------
 
-def ParametricBootStrap(simParameters,
-                        batchParameters,
-                        trainDir,
-                        network=None,
-                        slices=1000,
-                        repsPerSlice=1000,
-                        gpuID=0,
-                        tempDir="./Temp",
-                        out="./ParametricBootstrap.p",
-                        nCPU=1):
-
-
-    '''
-    This Function is for understanding network confidense
-    over a range of rho, using a parametric bootstrap.
-
-    SIDE NOTE: This will create a "temp" directory for filling
-    writing and re-writing the test sets.
-    after, it will destroy the tempDir.
-
-    The basic idea being that we take a trained network,
-    and iteritevly create test sets of simulation at steps which increase
-    between fixed ranges of Rho.
-
-    This function will output a pickle file containing
-    a dictionary where the first
-
-    This function will output a pickle file containing
-    a dictionary where the ["rho"] key contains the slices
-    between the values of rho where we simulate a test set,
-    and test the trained model.
-
-    The rest of the ket:value pairs in the dictionary contain
-    the quartile information at each slice position for the
-    distribution of test results
-    '''
-
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
-
-    # load json and create model
-    if(network != None):
-        jsonFILE = open(network[0],"r")
-        loadedModel = jsonFILE.read()
-        jsonFILE.close()
-        model=model_from_json(loadedModel)
-        model.load_weights(network[1])
-    else:
-        print("Error: no pretrained network found!")
-
-    if not os.path.exists(tempDir):
-        os.makedirs(tempDir)
-
-    priorLowsRho = simParameters['priorLowsRho']
-    priorHighsRho = simParameters['priorHighsRho']
-
-    rhoDiff = (priorHighsRho - priorLowsRho)/slices
-    IQR = {"rho":[],"Min":[],"CI95LO":[],"Q1":[],"Q2":[],"Q3":[],"CI95HI":[],"Max":[]}
-    rho = [(priorLowsRho+(rhoDiff*i)) for i in range(slices)]
-    IQR["rho"] = rho
-
-    mean,sd,pad = getMeanSDMax(trainDir)
-
-    for idx,r in enumerate(rho):
-        print("Simulating slice ",idx," out of ",slices)
-
-        params = copy.deepcopy(simParameters)
-        params["priorLowsRho"] = r
-        params["priorHighsRho"] = r
-        params.pop("bn", None)
-        simulator = Simulator(**params)
-
-        simulator.simulateAndProduceTrees(numReps=repsPerSlice,
-                                            direc=tempDir,
-                                            simulator="msprime",
-                                            nProc=nCPU)
-
-        batch_params = copy.deepcopy(batchParameters)
-        batch_params['treesDirectory'] = tempDir
-        batch_params['batchSize'] = repsPerSlice
-        batch_params['shuffleExamples'] = False
-        batchGenerator= SequenceBatchGenerator(**batch_params)
-
-        x,y = batchGenerator.__getitem__(0)
-        predictions = unNormalize(mean,sd,model.predict(x))
-        predictions = [p[0] for p in predictions]
-
-        minP,maxP = min(predictions),max(predictions)
-        quartiles = np.percentile(predictions,[2.5,25,50,75,97.5])
-
-        IQR["Min"].append(relu(minP))
-        IQR["Max"].append(relu(maxP))
-        IQR["CI95LO"].append(relu(quartiles[0]))
-        IQR["Q1"].append(relu(quartiles[1]))
-        IQR["Q2"].append(relu(quartiles[2]))
-        IQR["Q3"].append(relu(quartiles[3]))
-        IQR["CI95HI"].append(relu(quartiles[4]))
-
-        del simulator
-        del batchGenerator
-
-    pickle.dump(IQR,open(out,"wb"))
-
-    return rho,IQR
-
-
 def plotParametricBootstrap(results,saveas):
 
     '''
@@ -541,21 +658,7 @@ def plotParametricBootstrap(results,saveas):
     ax.set_ylim(lims)
     ax.plot(lims, lims, 'k-', alpha=0.75, zorder=0)
 
-    #print("finished")
     fig.savefig(saveas)
 
     return None
-
-
-
-
-
-
-
-
-
-
-
-
-
 

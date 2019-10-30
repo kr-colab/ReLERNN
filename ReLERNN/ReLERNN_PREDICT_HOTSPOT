@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """
-Predicts the recombination rate for each genomic window in the VCF file
-using a GRU network trained in ReLERNN_TRAIN.py
+Classifies each genomic window in the VCF file for the presence of recombination rate hotspots
+using a CNN network trained in ReLERNN_TRAIN_HOTSPOT.py
 """
 
 from ReLERNN.imports import *
@@ -26,11 +26,11 @@ def main():
         projectDir = os.getcwd()
     else:
         projectDir = args.outDir
-    trainDir = os.path.join(projectDir,"train")
-    valiDir = os.path.join(projectDir,"vali")
-    testDir = os.path.join(projectDir,"test")
-    networkDir = os.path.join(projectDir,"networks")
-    vcfDir = os.path.join(projectDir,"splitVCFs")
+    trainDir = os.path.join(projectDir,"train_hotspot")
+    valiDir = os.path.join(projectDir,"vali_hotspot")
+    testDir = os.path.join(projectDir,"test_hotspot")
+    networkDir = os.path.join(projectDir,"networks_hotspot")
+    vcfDir = os.path.join(projectDir,"splitVCFs_hotspot")
     modelSave = os.path.join(networkDir,"model.json")
     weightsSave = os.path.join(networkDir,"weights.h5")
 
@@ -106,11 +106,12 @@ def main():
                 resultsFile=pred_resultFile,
                 network=[modelSave,weightsSave],
                 minS=args.minS,
-                gpuID=args.gpuID)
+                gpuID=args.gpuID,
+                hotspots=True)
 
 
     ## Combine chromosome predictions in whole genome prediction file and rm chromosome files
-    genPredFILE=os.path.join(projectDir,bn.replace(".vcf",".PREDICT.txt"))
+    genPredFILE=os.path.join(projectDir,bn.replace(".vcf",".HOTSPOTS.txt"))
     files=[]
     for f in glob.glob(os.path.join(projectDir,"*.CHPREDICT.txt")):
         files.append(f)
@@ -131,7 +132,7 @@ def main():
             os.system(cmd)
 
 
-    print("\n***ReLERNN_PREDICT.py FINISHED!***\n")
+    print("\n***ReLERNN_PREDICT_HOTSPOT.py FINISHED!***\n")
 
 
 if __name__ == "__main__":

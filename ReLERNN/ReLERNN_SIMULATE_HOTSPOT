@@ -12,7 +12,7 @@ from ReLERNN.simulator import *
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file. Important: Every row must correspond to a biallelic SNP')
+    parser.add_argument('-v','--vcf',dest='vcf',help='Filtered and QC-checked VCF file. Important: Every row must correspond to a biallelic SNP with no missing data!')
     parser.add_argument('-g','--genome',dest='genome',help='BED-formatted (i.e. zero-based) file corresponding to chromosomes and positions to evaluate')
     parser.add_argument('-m','--mask',dest='mask',help='BED-formatted file corresponding to inaccessible bases', default=None)
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
@@ -30,6 +30,7 @@ def main():
     parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)
     parser.add_argument('--nVali',dest='nVali',help='Number of validation examples to simulate',type=int,default=1000)
     parser.add_argument('--nTest',dest='nTest',help='Number of test examples to simulate',type=int,default=1000)
+    parser.add_argument('--nHotWins',dest='nHotWins',help='Number of total recombination windows per simulation (hotspot will only occur in one of windows, so nHowWins == 10 means 10% of the chromosome is a hotspot)',type=int,default=10)
     args = parser.parse_args()
     
     # Ensure all required arguments are provided
@@ -62,11 +63,11 @@ def main():
     ## Set up the directory structure to store the simulations data.
     time.sleep(5)
     nProc = args.nCPU
-    trainDir = os.path.join(projectDir,"train")
-    valiDir = os.path.join(projectDir,"vali")
-    testDir = os.path.join(projectDir,"test")
-    networkDir = os.path.join(projectDir,"networks")
-    vcfDir = os.path.join(projectDir,"splitVCFs")
+    trainDir = os.path.join(projectDir,"train_hotspot")
+    valiDir = os.path.join(projectDir,"vali_hotspot")
+    testDir = os.path.join(projectDir,"test_hotspot")
+    networkDir = os.path.join(projectDir,"networks_hotspot")
+    vcfDir = os.path.join(projectDir,"splitVCFs_hotspot")
 
 
     ## Make directories if they do not exist
@@ -113,20 +114,7 @@ def main():
         mask_fraction, win_masks = vcf_manager.maskWins(wins=wins, maxLen=maxLen, nProc=nProc)
     else:
         mask_fraction, win_masks = 0.0, None
-    
-    
-    ## Prepare the missing data mask
-    md_mask, mask_files = None, []
-    for FILE in glob.glob(os.path.join(vcfDir, "*_md_mask.hdf5")):
-        mask_files.append(FILE)
-        md_mask = []
-    for FILE in mask_files:
-        print("Reading HDF5 mask: {}...".format(FILE))
-        with h5py.File(FILE, "r") as hf:
-            md_mask.append(hf["mask"][:])
-    if md_mask:
-        md_mask = np.concatenate(md_mask)
-    
+
     
     ## Define parameters for msprime simulation
     print("Simulating with window size = {} bp.".format(maxLen))
@@ -136,7 +124,7 @@ def main():
     thetaW=maxS/a
     assumedMu = args.mu
     Ne=int(thetaW/(4.0 * assumedMu * ((1-mask_fraction) * maxLen)))
-    rhoHi=assumedMu*args.upRTR
+    rhoHi=assumedMu * args.upRTR
     if demHist:
         MspD = convert_demHist(args.dem, nSamps, args.genTime, demHist)
         dg_params = {
@@ -146,11 +134,12 @@ def main():
                 'priorHighsMu':assumedMu * 1.33,
                 'ChromosomeLength':maxLen,
                 'winMasks':win_masks,
-                'mdMask':md_mask,
                 'maskThresh':args.maskThresh,
                 'phased':args.phased,
                 'phaseError':args.phaseError,
-                'MspDemographics':MspD
+                'MspDemographics':MspD,
+                'hotspots':True,
+                'nHotWins':args.nHotWins
                   }
 
     else:
@@ -162,10 +151,11 @@ def main():
             'priorHighsMu':assumedMu * 1.33,
             'ChromosomeLength':maxLen,
             'winMasks':win_masks,
-            'mdMask':md_mask,
             'maskThresh':args.maskThresh,
             'phased':args.phased,
-            'phaseError':args.phaseError
+            'phaseError':args.phaseError,
+            'hotspots':True,
+            'nHotWins':args.nHotWins
                   }
 
 
@@ -212,7 +202,7 @@ def main():
     print("Simulated:\t\t\t%s\t%s\t%s" %(minSegSites, int(sum(SS)/float(len(SS))), maxSegSites))
     for i in range(len(wins)):
         print("InputVCF %s:\t\t%s\t%s\t%s" %(wins[i][0],wins[i][3],wins[i][4],wins[i][5]))
-    print("\n\n***ReLERNN_SIMULATE.py FINISHED!***\n")
+    print("\n\n***ReLERNN_SIMULATE_HOTSPOT.py FINISHED!***\n")
 
 
 if __name__ == "__main__":

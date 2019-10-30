@@ -4,6 +4,7 @@ Author: Jared Galloway, Jeff Adrion
 '''
 
 from ReLERNN.imports import *
+from ReLERNN.helpers import *
 
 class Simulator(object):
     '''
@@ -33,7 +34,14 @@ class Simulator(object):
         priorHighsRho = 1e-7,
         priorHighsMu = 1e-8,
         ChromosomeLength = 1e5,
-        MspDemographics = None
+        MspDemographics = None,
+        winMasks = None,
+        mdMask = None,
+        maskThresh = 1.0,
+        phased = None,
+        phaseError = None,
+        hotspots = False,
+        nHotWins = 10
         ):
 
         self.N = N
@@ -45,8 +53,17 @@ class Simulator(object):
         self.ChromosomeLength = ChromosomeLength
         self.MspDemographics = MspDemographics
         self.rho = None
+        self.hotWin = None
         self.mu = None
         self.segSites = None
+        self.winMasks = winMasks
+        self.mdMask = mdMask
+        self.maskThresh = maskThresh
+        self.phased = None
+        self.phaseError = phaseError
+        self.hotspots = hotspots
+        self.nHotWins = nHotWins
+
 
     def runOneMsprimeSim(self,simNum,direc):
         '''
@@ -58,30 +75,101 @@ class Simulator(object):
         MR = self.mu[simNum]
         RR = self.rho[simNum]
 
-        if self.MspDemographics:
-            DE = self.MspDemographics["demographic_events"]
-            PC = self.MspDemographics["population_configurations"]
-            MM = self.MspDemographics["migration_matrix"]
-            ts = msp.simulate(
-                length=self.ChromosomeLength,
-                mutation_rate=MR,
-                recombination_rate=RR,
-                population_configurations = PC,
-                migration_matrix = MM,
-                demographic_events = DE
-            )
+        if self.hotspots:
+            hotspotMultiplier = self.hotWin[simNum]
+
+            mapName = str(simNum) + "_map.txt"
+            mapPath = os.path.join(direc,mapName)
+
+            nWins = self.nHotWins
+            hotSpotWin = np.random.randint(nWins)
+
+            winRates = np.empty(nWins)
+
+            breaks = np.linspace(0,self.ChromosomeLength, num = nWins + 1)
+            with open(mapPath, "w") as fOUT:
+                fOUT.write("Chromosome\tstartPos\tRate\n")
+                for i in range(len(breaks)):
+                    if i == hotSpotWin:
+                        baseRate = RR * hotspotMultiplier * 10**8
+                        winRates[i] = baseRate
+                    elif i == nWins:
+                        baseRate = 0.0
+                    else:
+                        baseRate = RR * 10**8
+                        winRates[i] = baseRate
+                    fOUT.write("{}\t{}\t{}\n".format("chr",int(breaks[i]),baseRate))
+
+            recomb_map = msp.RecombinationMap.read_hapmap(mapPath)
+
+            if self.MspDemographics:
+                DE = self.MspDemographics["demographic_events"]
+                PC = self.MspDemographics["population_configurations"]
+                MM = self.MspDemographics["migration_matrix"]
+                ts = msp.simulate(
+                    mutation_rate=MR,
+                    population_configurations = PC,
+                    migration_matrix = MM,
+                    demographic_events = DE,
+                    recombination_map = recomb_map
+                )
+
+            else:
+                ts = msp.simulate(
+                    sample_size = self.N,
+                    Ne = self.Ne,
+                    mutation_rate=MR,
+                    recombination_map = recomb_map
+                )
+
         else:
-            ts = msp.simulate(
-                sample_size = self.N,
-                Ne = self.Ne,
-                length=self.ChromosomeLength,
-                mutation_rate=MR,
-                recombination_rate=RR
-            )
+            if self.MspDemographics:
+                DE = self.MspDemographics["demographic_events"]
+                PC = self.MspDemographics["population_configurations"]
+                MM = self.MspDemographics["migration_matrix"]
+                ts = msp.simulate(
+                    length=self.ChromosomeLength,
+                    mutation_rate=MR,
+                    recombination_rate=RR,
+                    population_configurations = PC,
+                    migration_matrix = MM,
+                    demographic_events = DE
+                )
+            else:
+                ts = msp.simulate(
+                    sample_size = self.N,
+                    Ne = self.Ne,
+                    length=self.ChromosomeLength,
+                    mutation_rate=MR,
+                    recombination_rate=RR
+                )
 
         # Convert tree sequence to genotype matrix, and position matrix
         H = ts.genotype_matrix()
         P = np.array([s.position for s in ts.sites()],dtype='float32')
+
+        # "Unphase" genotypes
+        if not self.phased:
+            np.random.shuffle(np.transpose(H))
+
+        # Simulate phasing error
+        if self.phaseError:
+            H = self.phaseErrorer(H,self.phaseError)
+
+        # If there is a missing data mask, sample from the mask and apply to haps
+        if not self.mdMask is None:
+            mdMask = self.mdMask[np.random.choice(self.mdMask.shape[0], H.shape[0], replace=True)]
+            H = np.ma.masked_array(H, mask=mdMask)
+            H = np.ma.filled(H,2)
+
+        # Sample from the genome-wide distribution of masks and mask both positions and genotypes
+        if self.winMasks:
+            while True:
+                rand_mask = self.winMasks[random.randint(0,len(self.winMasks)-1)]
+                if rand_mask[0] < self.maskThresh:
+                    break
+            if rand_mask[0] > 0.0:
+                H,P = self.maskGenotypes(H, P, rand_mask)
 
         # Dump
         Hname = str(simNum) + "_haps.npy"
@@ -92,8 +180,29 @@ class Simulator(object):
         np.save(Ppath,P)
 
         # Return number of sites
-        ns = ts.num_sites
-        return ns
+        return H.shape[0]
+
+
+    def maskGenotypes(self, H, P, rand_mask):
+        """
+        Return the genotype and position matrices where masked sites have been removed
+        """
+        mask_wins = np.array(rand_mask[1])
+        mask_wins = np.reshape(mask_wins, 2 * mask_wins.shape[0])
+        mask = np.digitize(P, mask_wins) % 2 == 0
+        return H[mask], P[mask]
+
+
+    def phaseErrorer(self, H, rate):
+        """
+        Returns the genotype matrix where some fraction of sites have shuffled samples
+        """
+        H_shuf = copy.deepcopy(H)
+        np.random.shuffle(np.transpose(H_shuf))
+        H_mask = np.random.choice([True,False], H.shape[0], p = [1-rate,rate])
+        H_mask = np.repeat(H_mask, H.shape[1])
+        H_mask = H_mask.reshape(H.shape)
+        return np.where(H_mask,H,H_shuf)
 
 
     def simulateAndProduceTrees(self,direc,numReps,simulator,nProc=1):
@@ -102,6 +211,15 @@ class Simulator(object):
 
         (str,str) -> None
         '''
+        if self.hotspots:
+            self.hotWin=np.zeros(numReps)
+            for i in range(int(numReps/2.0)):
+                randomTargetParameter = np.random.uniform(50,50)
+                self.hotWin[i] = randomTargetParameter
+            for i in range(int(numReps/2.0),numReps):
+                randomTargetParameter = np.random.uniform(1,1)
+                self.hotWin[i] = randomTargetParameter
+
         self.rho=np.empty(numReps)
         for i in range(numReps):
             randomTargetParameter = np.random.uniform(self.priorLowsRho,self.priorHighsRho)
@@ -129,10 +247,10 @@ class Simulator(object):
         result_q = mp.Queue()
         params=[simulator, direc]
 
-        # do the work boyeeee!
+        # do the work
         print("Simulate...")
-        pids = self.create_procs(nProc, task_q, result_q, params)
-        self.assign_task(mpID, task_q, nProc)
+        pids = create_procs(nProc, task_q, result_q, params, self.worker_simulate)
+        assign_task(mpID, task_q, nProc)
         try:
             task_q.join()
         except KeyboardInterrupt:
@@ -151,34 +269,10 @@ class Simulator(object):
 
         for p in pids:
             p.terminate()
-
         return None
 
-    def assign_task(self, mpID, task_q, nProcs):
-        c,i,nth_job=0,0,1
-        while (i+1)*nProcs <= len(mpID):
-            i+=1
-        nP1=nProcs-(len(mpID)%nProcs)
-        for j in range(nP1):
-            task_q.put((mpID[c:c+i], nth_job))
-            nth_job += 1
-            c=c+i
-        for j in range(nProcs-nP1):
-            task_q.put((mpID[c:c+i+1], nth_job))
-            nth_job += 1
-            c=c+i+1
 
-
-    def create_procs(self, nProcs, task_q, result_q, params):
-        pids = []
-        for _ in range(nProcs):
-            p = mp.Process(target=self.worker, args=(task_q, result_q, params))
-            p.daemon = True
-            p.start()
-            pids.append(p)
-        return pids
-
-    def worker(self, task_q, result_q, params):
+    def worker_simulate(self, task_q, result_q, params):
         while True:
             try:
                 mpID, nth_job = task_q.get()
@@ -188,4 +282,3 @@ class Simulator(object):
                         result_q.put([i,self.runOneMsprimeSim(i,direc)])
             finally:
                 task_q.task_done()
-
