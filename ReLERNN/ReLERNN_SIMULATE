@@ -138,7 +138,7 @@ def main():
     Ne=int(thetaW/(4.0 * assumedMu * ((1-mask_fraction) * maxLen)))
     rhoHi=assumedMu*args.upRTR
     if demHist:
-        MspD = convert_demHist(args.dem, nSamps, args.genTime, demHist)
+        MspD = convert_demHist(args.dem, nSamps, args.genTime, demHist, assumedMu)
         dg_params = {
                 'priorLowsRho':0.0,
                 'priorHighsRho':rhoHi,
