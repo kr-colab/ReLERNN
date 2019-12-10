@@ -76,13 +76,15 @@ def snps_per_win(pos, window_size):
 
 #-------------------------------------------------------------------------------------------
 
-def find_win_size(winSize, pos, step, winSizeMx):
+def find_win_size(winSize, pos, winSizeMx):
     snpsWin=snps_per_win(pos,winSize)
     mn,u,mx = snpsWin.min(), int(snpsWin.mean()), snpsWin.max()
-    if mx <= winSizeMx:
-        return [winSize,mn,u,mx,len(snpsWin)]
+    if mx > winSizeMx:
+        return [-1]
+    elif mx < winSizeMx:
+        return [1]
     else:
-        return [mn,u,mx]
+        return [winSize,mn,u,mx,len(snpsWin)]
 
 #-------------------------------------------------------------------------------------------
 
@@ -287,12 +289,13 @@ def load_and_predictVCF(VCFGenerator,
     else:
         u=np.mean(info["rho"])
         sd=np.std(info["rho"])
+        last = int(os.path.basename(resultsFile).split(".")[0].split("-")[-1])
         with open(resultsFile, "w") as fOUT:
             ct=0
             fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate"))
             for i in range(len(predictions)):
                 if nSNPs[i] >= minS:
-                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,nSNPs[i],relu(sd*predictions[i][0]+u)))
+                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,min(ct+win,last),nSNPs[i],relu(sd*predictions[i][0]+u)))
                 ct+=win
 
     return None
