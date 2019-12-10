@@ -183,7 +183,6 @@ class Manager(object):
                     chroms=var["CHROM"]
                     pos=var["POS"]
                     genos=allel.GenotypeChunkedArray(callset["calldata"]["GT"])
-                    #Is this a haploid or diploid VCF?
                     GT=genos.to_haplotypes()
                     GTB=GT[:,1:2]
                     GTB=GTB[0].tolist()
@@ -192,6 +191,7 @@ class Manager(object):
                         nSamps=len(genos[0])
                         GT=GT[:,::2] #Select only the first of the genotypes
                     else:
+                        GT=np.array(GT)
                         nSamps=len(genos[0])*2
 
                     ## if there is any missing data write a missing data boolean mask to hdf5
@@ -201,20 +201,29 @@ class Manager(object):
                         with h5py.File(md_maskFile, "w") as hf:
                             hf.create_dataset("mask", data=md_mask)
 
-                    ## Identify ideal training parameters
+                    ## Find best window size
                     if self.forceWinSize != 0:
                         ip = force_win_size(self.forceWinSize,pos)
                         result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
                     else:
-                        step=1000
-                        winSize=1000000
-                        while winSize > 0:
-                            ip = find_win_size(winSize,pos,step,self.winSizeMx)
+                        last, next_size = 0, round(int(chromosomes[i].split(":")[-1].split("-")[-1]),-3)
+                        lo, hi = [last], [next_size]
+                        D = next_size
+                        while D > 5:
+                            ip = find_win_size(next_size,pos,self.winSizeMx)
+                            D = min(hi)-max(lo)
                             if len(ip) != 5:
-                                winSize-=step
+                                last = next_size
+                                if ip[0] < 0:
+                                    hi.append(last)
+                                if ip[0] > 0:
+                                    lo.append(last)
+                                next_size = max(lo) + int((min(hi) - max(lo))/2.0)
                             else:
-                                result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
-                                winSize=0
+                                break
+                        next_size = round(next_size,-2)
+                        ip = force_win_size(next_size,pos)
+                        result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
             finally:
                 task_q.task_done()
 
@@ -272,20 +281,29 @@ class Manager(object):
                             pos.append(int(line.split()[1]))
                     pos=np.array(pos)
 
-                    ## Identify ideal training parameters
+                    ## Find best window size
                     if self.forceWinSize != 0:
                         ip = force_win_size(self.forceWinSize,pos)
                         result_q.put([chromosomes[i],ip[0],ip[1],ip[2],ip[3],ip[4]])
                     else:
-                        step=1000
-                        winSize=1000000
-                        while winSize > 0:
-                            ip = find_win_size(winSize,pos,step,self.winSizeMx)
+                        last, next_size = 0, round(int(chromosomes[i].split(":")[-1].split("-")[-1]),-3)
+                        lo, hi = [last], [next_size]
+                        D = next_size
+                        while D > 5:
+                            ip = find_win_size(next_size,pos,self.winSizeMx)
+                            D = min(hi)-max(lo)
                             if len(ip) != 5:
-                                winSize-=step
+                                last = next_size
+                                if ip[0] < 0:
+                                    hi.append(last)
+                                if ip[0] > 0:
+                                    lo.append(last)
+                                next_size = max(lo) + int((min(hi) - max(lo))/2.0)
                             else:
-                                result_q.put([chromosomes[i],ip[0],ip[1],ip[2],ip[3],ip[4]])
-                                winSize=0
+                                break
+                        next_size = round(next_size,-2)
+                        ip = force_win_size(next_size,pos)
+                        result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
             finally:
                 task_q.task_done()
 
