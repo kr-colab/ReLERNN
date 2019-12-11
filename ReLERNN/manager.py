@@ -237,7 +237,7 @@ class Manager(object):
                             else:
                                 break
                             D = hi - lo
-                        ip = force_win_size(round(target, -2), pos)
+                        ip = force_win_size(round(target, -3), pos)
                         result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
             finally:
                 task_q.task_done()
