@@ -188,7 +188,7 @@ class Simulator(object):
         Return the genotype and position matrices where masked sites have been removed
         """
         mask_wins = np.array(rand_mask[1])
-        mask_wins = np.reshape(mask_wins, 2 * mask_wins.shape[0])
+        mask_wins = np.sort(np.reshape(mask_wins, 2 * mask_wins.shape[0]))
         mask = np.digitize(P, mask_wins) % 2 == 0
         return H[mask], P[mask]
 

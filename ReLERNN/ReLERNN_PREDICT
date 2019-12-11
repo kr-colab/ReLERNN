@@ -47,6 +47,7 @@ def main():
 
 
     ## Loop through chromosomes and predict
+    pred_resultFiles = []
     for i in range(len(wins)):
         ## Read in the hdf5
         bn=os.path.basename(args.vcf)
@@ -102,6 +103,7 @@ def main():
 
         ## Load trained model and make predictions on VCF data
         pred_resultFile = os.path.join(projectDir,wins[i][0]+".CHPREDICT.txt")
+        pred_resultFiles.append(pred_resultFile)
         load_and_predictVCF(VCFGenerator=pred_sequence,
                 resultsFile=pred_resultFile,
                 network=[modelSave,weightsSave],
@@ -111,12 +113,9 @@ def main():
 
     ## Combine chromosome predictions in whole genome prediction file and rm chromosome files
     genPredFILE=os.path.join(projectDir,bn.replace(".vcf",".PREDICT.txt"))
-    files=[]
-    for f in glob.glob(os.path.join(projectDir,"*.CHPREDICT.txt")):
-        files.append(f)
     ct=0
     with open(genPredFILE, "w") as fOUT:
-        for f in sorted(files):
+        for f in pred_resultFiles:
             if ct==0:
                 with open(f, "r") as fIN:
                     for line in fIN:
