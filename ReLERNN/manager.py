@@ -319,12 +319,10 @@ class Manager(object):
                 task_q.task_done()
 
 
-    def maskWins(self, maxLen=None, wins=None, nProc=1):
-        '''
-        split the vcf into seperate files by chromosome
-        '''
+    def maskWins(self, wins=None, maxLen=None, nProc=1):
         ## Read accessability mask
         print("\nAccessibility mask found: calculating the proportion of the genome that is masked...")
+        genome = [x[0].split(":")[0] for x in wins]
         mask={}
         with open(self.mask, "r") as fIN:
             for line in fIN:
@@ -332,7 +330,8 @@ class Manager(object):
                 try:
                     mask[ar[0]].append([int(pos) for pos in ar[1:]])
                 except KeyError:
-                    mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
+                    if ar[0] in genome:
+                        mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
 
         ## Combine genomic windows
         genomic_wins = []
