@@ -328,7 +328,11 @@ class Manager(object):
             for line in fIN:
                 ar = line.split()
                 try:
-                    mask[ar[0]].append([int(pos) for pos in ar[1:]])
+                    if int(ar[1]) < mask[ar[0]][-1][1]:
+                        print("Error: positions in accessibility mask are required to be non-overlapping and ascending!")
+                        sys.exit(1)
+                    else:
+                        mask[ar[0]].append([int(pos) for pos in ar[1:]])
                 except KeyError:
                     if ar[0] in genome:
                         mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
