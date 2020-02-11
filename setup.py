@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='ReLERNN',
-      version='0.1',
+      version='0.2',
       description='ReLERNN: Recombination Landscape Estimation using Recurrent Neural Networks',
       long_description=long_description,
       long_description_content_type="text/markdown",
@@ -15,13 +15,11 @@ setup(name='ReLERNN',
       license='MIT',
       packages=find_packages(exclude=[]),
       install_requires=[
-            "msprime",
-            "numpy>=1.16.0",
-            "h5py",
-            "scikit-allel",
-            "matplotlib",
-            "sklearn",
-            "keras"],
+          "tensorflow",
+          "msprime",
+          "scikit-allel",
+          "matplotlib",
+          "scikit-learn"],
       scripts=[
             "ReLERNN/ReLERNN_SIMULATE",
             "ReLERNN/ReLERNN_SIMULATE_POOL",

@@ -4,10 +4,10 @@ Authors: Jared Galloway, Jeff Adrion
 
 from ReLERNN.imports import *
 
-class SequenceBatchGenerator(keras.utils.Sequence):
+class SequenceBatchGenerator(tf.keras.utils.Sequence):
 
     '''
-    This class, SequenceBatchGenerator, extends keras.utils.Sequence.
+    This class, SequenceBatchGenerator, extends tf.keras.utils.Sequence.
     So as to multithread the batch preparation in tandum with network training
     for maximum effeciency on the hardware provided.
 
@@ -327,7 +327,7 @@ class SequenceBatchGenerator(keras.utils.Sequence):
                 return [haps,pos], targets
 
 
-class VCFBatchGenerator(keras.utils.Sequence):
+class VCFBatchGenerator(tf.keras.utils.Sequence):
     """Basically same as SequenceBatchGenerator Class except for VCF files"""
     def __init__(self,
             INFO,
@@ -451,7 +451,7 @@ class VCFBatchGenerator(keras.utils.Sequence):
             return [haps,pos], self.CHROM, self.WIN, self.INFO, nSNPs
 
 
-class POOLBatchGenerator(keras.utils.Sequence):
+class POOLBatchGenerator(tf.keras.utils.Sequence):
     """Basically same as SequenceBatchGenerator Class except for POOL files"""
     def __init__(self,
             INFO,

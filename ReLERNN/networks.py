@@ -14,15 +14,15 @@ def GRU_TUNED84(x,y):
     numSamps = haps[0].shape[1]
     numPos = pos[0].shape[0]
 
-    genotype_inputs = Input(shape=(numSNPs,numSamps))
-    model = layers.Bidirectional(layers.CuDNNGRU(84,return_sequences=False))(genotype_inputs)
+    genotype_inputs = layers.Input(shape=(numSNPs,numSamps))
+    model = layers.Bidirectional(layers.GRU(84,return_sequences=False))(genotype_inputs)
     model = layers.Dense(256)(model)
     model = layers.Dropout(0.35)(model)
 
     #----------------------------------------------------
 
-    position_inputs = Input(shape=(numPos,))
-    m2 = Dense(256)(position_inputs)
+    position_inputs = layers.Input(shape=(numPos,))
+    m2 = layers.Dense(256)(position_inputs)
 
     #----------------------------------------------------
 
@@ -46,8 +46,8 @@ def GRU_POOLED(x,y):
     sites=x.shape[1]
     features=x.shape[2]
 
-    genotype_inputs = Input(shape=(sites,features))
-    model = layers.Bidirectional(layers.CuDNNGRU(84,return_sequences=False))(genotype_inputs)
+    genotype_inputs = layers.Input(shape=(sites,features))
+    model = layers.Bidirectional(layers.GRU(84,return_sequences=False))(genotype_inputs)
     model = layers.Dense(256)(model)
     model = layers.Dropout(0.35)(model)
     output = layers.Dense(1)(model)
@@ -67,15 +67,15 @@ def HOTSPOT_CLASSIFY(x,y):
     numSamps = haps[0].shape[1]
     numPos = pos[0].shape[0]
 
-    genotype_inputs = Input(shape=(numSNPs,numSamps))
-    model = layers.Bidirectional(layers.CuDNNGRU(84,return_sequences=False))(genotype_inputs)
+    genotype_inputs = layers.Input(shape=(numSNPs,numSamps))
+    model = layers.Bidirectional(layers.GRU(84,return_sequences=False))(genotype_inputs)
     model = layers.Dense(256)(model)
     model = layers.Dropout(0.35)(model)
 
     #----------------------------------------------------
 
-    position_inputs = Input(shape=(numPos,))
-    m2 = Dense(256)(position_inputs)
+    position_inputs = layers.Input(shape=(numPos,))
+    m2 = layers.Dense(256)(position_inputs)
 
     #----------------------------------------------------
 

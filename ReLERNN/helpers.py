@@ -328,12 +328,12 @@ def runModels(ModelFuncPointer,
 
     # Early stopping and saving the best weights
     callbacks_list = [
-            keras.callbacks.EarlyStopping(
+            EarlyStopping(
                 monitor='val_loss',
                 verbose=1,
                 min_delta=0.01,
                 patience=100),
-            keras.callbacks.ModelCheckpoint(
+            ModelCheckpoint(
                 filepath=network[1],
                 monitor='val_loss',
                 save_best_only=True)
