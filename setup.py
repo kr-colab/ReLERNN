@@ -15,10 +15,10 @@ setup(name='ReLERNN',
       license='MIT',
       packages=find_packages(exclude=[]),
       install_requires=[
+          "matplotlib",
           "msprime",
           "scikit-allel",
-          "matplotlib",
-          "scikit-learn"],
+          "scikit-learn"]
       scripts=[
             "ReLERNN/ReLERNN_SIMULATE",
             "ReLERNN/ReLERNN_SIMULATE_POOL",
