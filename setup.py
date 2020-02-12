@@ -15,7 +15,6 @@ setup(name='ReLERNN',
       license='MIT',
       packages=find_packages(exclude=[]),
       install_requires=[
-          "tensorflow",
           "msprime",
           "scikit-allel",
           "matplotlib",
