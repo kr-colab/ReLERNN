@@ -18,7 +18,7 @@ setup(name='ReLERNN',
           "matplotlib",
           "msprime",
           "scikit-allel",
-          "scikit-learn"]
+          "scikit-learn"],
       scripts=[
             "ReLERNN/ReLERNN_SIMULATE",
             "ReLERNN/ReLERNN_SIMULATE_POOL",
