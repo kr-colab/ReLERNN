@@ -6,20 +6,15 @@ ReLERNN uses deep learning to infer the genome-wide landscape of recombination f
 This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly. The current manuscript detailing ReLERNN can be found [here](https://www.biorxiv.org/content/biorxiv/early/2019/08/16/662247.full.pdf).
 
 ## Recommended installation on linux
-Install `tensorflow-gpu` on your system. Directions can be found [here](https://www.tensorflow.org/install/gpu). We recommend using tensorflow version 1.13.1. You will need to install the CUDA toolkit and CuDNN as well as mentioned in the docs above.
+Install `tensorflow 2` on your system. Directions can be found [here](https://www.tensorflow.org/install). You will need to install the CUDA toolkit and CuDNN as well.
 
 Further dependencies for ReLERNN can be installed with pip.
-This is done with the following command:
-
-```
-$ pip install ReLERNN
-```
-Please note that the version of ReLERNN installed via pip may be older than the version available in this repo, and therefore the commands for running ReLERNN may use slightly different arguments/options.
-For the bleeding edge version of ReLERNN, you should clone directly from github and install via setup.py using the following commands: 
+This is done with the following commands:
 
 ```
 $ git clone https://github.com/kern-lab/ReLERNN.git
 $ cd ReLERNN
+$ pip install -r requirements.txt
 $ python setup.py install
 ```
 

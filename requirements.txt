@@ -1,0 +1,4 @@
+msprime
+scikit-learn
+matplotlib
+scikit-allel
