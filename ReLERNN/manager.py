@@ -22,6 +22,7 @@ class Manager(object):
         mask = None,
         winSizeMx = None,
         forceWinSize = None,
+        forceDiploid = None,
         vcfDir = None,
         poolDir = None,
         projectDir = None,
@@ -34,6 +35,7 @@ class Manager(object):
         self.mask = mask
         self.winSizeMx = winSizeMx
         self.forceWinSize = forceWinSize
+        self.forceDiploid = forceDiploid
         self.vcfDir = vcfDir
         self.poolDir = poolDir
         self.projectDir = projectDir
@@ -166,7 +168,15 @@ class Manager(object):
                         sorted_wins.append(win)
                         fOUT.write("\t".join([str(x) for x in win])+"\n")
         if len(set(nSamps)) != 1:
-            print("Error: chromosomes have different numbers of samples")
+            print("\nError: chromosomes have different sample sizes!\n")
+            print("chromosome\t\tnum_samples (-9 when n varies between samples)")
+            for chrom in self.chromosomes:
+                for win in wins:
+                    if win[0] == chrom:
+                        print("%s\t\t%s"%(chrom.split(":")[0],win[1]))
+            print("\nAll samples can be treated as 'diploids with missing data' by rerunning with the option `--forceDiploid`, however this is probably a bad idea (see README.md).")
+            sys.exit(1)
+
         return sorted_wins, nSamps[0], maxS, maxLen
 
 
@@ -177,22 +187,29 @@ class Manager(object):
                 chromosomes = params
                 for i in mpID:
                     h5FILE=os.path.join(self.vcfDir, os.path.basename(self.vcf).replace(".vcf","_%s.hdf5" %(chromosomes[i])))
-                    print("""\nReading HDF5: "%s"...""" %(h5FILE))
+                    print("""Reading HDF5: "%s"...""" %(h5FILE))
                     callset=h5py.File(h5FILE, mode="r")
                     var=allel.VariantChunkedTable(callset["variants"],names=["CHROM","POS"], index="POS")
                     chroms=var["CHROM"]
                     pos=var["POS"]
                     genos=allel.GenotypeChunkedArray(callset["calldata"]["GT"])
-                    #Is this a haploid or diploid VCF?
                     GT=genos.to_haplotypes()
-                    GTB=GT[:,1:2]
-                    GTB=GTB[0].tolist()
-
-                    if len(set(GTB)) == 1 and GTB[0] == -1:
+                    diploid_check=[]
+                    for n in range(1,len(genos[0]),2):
+                        GTB=GT[:,n:n+1]
+                        if np.unique(GTB).shape[0] == 1 and np.unique(GTB)[0] == -1:
+                            diploid_check.append(0)
+                        else:
+                            diploid_check.append(1)
+                    if 1 in diploid_check or self.forceDiploid:
+                        GT=np.array(GT)
+                        nSamps=len(genos[0])*2
+                    else:
                         nSamps=len(genos[0])
                         GT=GT[:,::2] #Select only the first of the genotypes
-                    else:
-                        nSamps=len(genos[0])*2
+                    if 0 in diploid_check and 1 in diploid_check and not self.forceDiploid:
+                        print("\nError: Both haploid and diploid samples present in %s!"%(chromosomes[i].split(":")[0]))
+                        nSamps=-9
 
                     ## if there is any missing data write a missing data boolean mask to hdf5
                     md_mask = GT < 0
@@ -201,20 +218,27 @@ class Manager(object):
                         with h5py.File(md_maskFile, "w") as hf:
                             hf.create_dataset("mask", data=md_mask)
 
-                    ## Identify ideal training parameters
+                    ## Find best window size
                     if self.forceWinSize != 0:
                         ip = force_win_size(self.forceWinSize,pos)
                         result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
                     else:
-                        step=1000
-                        winSize=1000000
-                        while winSize > 0:
-                            ip = find_win_size(winSize,pos,step,self.winSizeMx)
+                        lo, hi = 0, round(int(chromosomes[i].split(":")[-1].split("-")[-1]),-3)
+                        D = hi - lo
+                        target = lo + int((hi - lo)/2.0)
+                        while D > 10:
+                            ip = find_win_size(target,pos,self.winSizeMx)
                             if len(ip) != 5:
-                                winSize-=step
+                                if ip[0] < 0:
+                                    hi = target
+                                if ip[0] > 0:
+                                    lo = target
+                                target = lo + int((hi - lo)/2.0)
                             else:
-                                result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
-                                winSize=0
+                                break
+                            D = hi - lo
+                        ip = force_win_size(round(target, -3), pos)
+                        result_q.put([chromosomes[i],nSamps,ip[0],ip[1],ip[2],ip[3],ip[4]])
             finally:
                 task_q.task_done()
 
@@ -253,8 +277,6 @@ class Manager(object):
                         nSamps.append(samD)
                         sorted_wins.append(win)
                         fOUT.write("\t".join([str(x) for x in win])+"\n")
-        if len(set(nSamps)) != 1:
-            print("Error: chromosomes have different numbers of samples")
         return sorted_wins, nSamps[0], maxS, maxLen
 
 
@@ -272,38 +294,48 @@ class Manager(object):
                             pos.append(int(line.split()[1]))
                     pos=np.array(pos)
 
-                    ## Identify ideal training parameters
+                    ## Find best window size
                     if self.forceWinSize != 0:
                         ip = force_win_size(self.forceWinSize,pos)
                         result_q.put([chromosomes[i],ip[0],ip[1],ip[2],ip[3],ip[4]])
                     else:
-                        step=1000
-                        winSize=1000000
-                        while winSize > 0:
-                            ip = find_win_size(winSize,pos,step,self.winSizeMx)
+                        lo, hi = 0, round(int(chromosomes[i].split(":")[-1].split("-")[-1]),-3)
+                        D = hi - lo
+                        target = lo + int((hi - lo)/2.0)
+                        while D > 10:
+                            ip = find_win_size(target,pos,self.winSizeMx)
                             if len(ip) != 5:
-                                winSize-=step
+                                if ip[0] < 0:
+                                    hi = target
+                                if ip[0] > 0:
+                                    lo = target
+                                target = lo + int((hi - lo)/2.0)
                             else:
-                                result_q.put([chromosomes[i],ip[0],ip[1],ip[2],ip[3],ip[4]])
-                                winSize=0
+                                break
+                            D = hi - lo
+                        ip = force_win_size(round(target, -2), pos)
+                        result_q.put([chromosomes[i],ip[0],ip[1],ip[2],ip[3],ip[4]])
             finally:
                 task_q.task_done()
 
 
-    def maskWins(self, maxLen=None, wins=None, nProc=1):
-        '''
-        split the vcf into seperate files by chromosome
-        '''
+    def maskWins(self, wins=None, maxLen=None, nProc=1):
         ## Read accessability mask
-        print("Accessibility mask found: calculating the proportion of the genome that is masked...")
+        print("\nAccessibility mask found: calculating the proportion of the genome that is masked...")
+        genome = [x[0].split(":")[0] for x in wins]
         mask={}
         with open(self.mask, "r") as fIN:
             for line in fIN:
                 ar = line.split()
                 try:
-                    mask[ar[0]].append([int(pos) for pos in ar[1:]])
+                    if int(ar[1]) < mask[ar[0]][-1][1]:
+                        print("Error: positions in accessibility mask are required to be non-overlapping and ascending!")
+                        sys.exit(1)
+                    else:
+                        mask[ar[0]].append([int(pos) for pos in ar[1:]])
                 except KeyError:
-                    mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
+                    if ar[0] in genome:
+                        mask[ar[0]] = [[int(pos) for pos in ar[1:]]]
 
         ## Combine genomic windows
         genomic_wins = []
@@ -342,7 +374,7 @@ class Manager(object):
             win_masks.append(mask)
 
         mean_mask_fraction = sum(mask_fraction)/float(len(mask_fraction))
-        print("{}% of genome inaccessible".format(round(mean_mask_fraction * 100,1)))
+        print("{}% of genome inaccessible\n".format(round(mean_mask_fraction * 100,1)))
         return mean_mask_fraction, win_masks
 
 

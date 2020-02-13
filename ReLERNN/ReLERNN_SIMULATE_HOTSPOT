@@ -24,7 +24,7 @@ def main():
     parser.add_argument('--phased',help='Treat genotypes as phased',default=False, action='store_true')
     parser.add_argument('--unphased',dest='phased',help='Treat genotypes as unphased',action='store_false')
     parser.add_argument('--phaseError',dest='phaseError',help='Fraction of bases simulated with incorrect phasing',type=float,default=0.0)
-    parser.add_argument('--maxWinSize',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
+    parser.add_argument('--maxSites',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
     parser.add_argument('--forceWinSize',dest='forceWinSize',help='USED ONLY FOR TESTING, LEAVE AS DEFAULT',type=int,default=0)
     parser.add_argument('--maskThresh',dest='maskThresh',help='Discard windows where >= maskThresh percent of sites are inaccessible',type=float,default=1.0)
     parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)

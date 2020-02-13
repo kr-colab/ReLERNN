@@ -23,8 +23,9 @@ def main():
     parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
     parser.add_argument('--phased',help='Treat genotypes as phased',default=False, action='store_true')
     parser.add_argument('--unphased',dest='phased',help='Treat genotypes as unphased',action='store_false')
+    parser.add_argument('--forceDiploid',help='Treat all samples as diploids with missing data (bad idea; see README)',default=False, action='store_true')
     parser.add_argument('--phaseError',dest='phaseError',help='Fraction of bases simulated with incorrect phasing',type=float,default=0.0)
-    parser.add_argument('--maxWinSize',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
+    parser.add_argument('--maxSites',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
     parser.add_argument('--forceWinSize',dest='forceWinSize',help='USED ONLY FOR TESTING, LEAVE AS DEFAULT',type=int,default=0)
     parser.add_argument('--maskThresh',dest='maskThresh',help='Discard windows where >= maskThresh percent of sites are inaccessible',type=float,default=1.0)
     parser.add_argument('--nTrain',dest='nTrain',help='Number of training examples to simulate',type=int,default=100000)
@@ -57,10 +58,15 @@ def main():
     if not args.phased and args.phaseError != 0.0:
         print("Error: non-zero 'phaseError' cannot be used in conjunction with '--unphased'")
         sys.exit(1)
+    if args.forceDiploid:
+        print("Warning: all haploid/hemizygous samples will be treated as diploid samples with missing data!\n",
+                "If you want to treat haploid/hemizygous samples and haploids without missing data, quit now, ensure no diploid samples are found in this VCF, and rerun without the option `--forceDiploid`.")
+        time.sleep(10)
+    else:
+        time.sleep(5)
     
-
+    
     ## Set up the directory structure to store the simulations data.
-    time.sleep(5)
     nProc = args.nCPU
     trainDir = os.path.join(projectDir,"train")
     valiDir = os.path.join(projectDir,"vali")
@@ -92,6 +98,7 @@ def main():
             'mask':args.mask,
             'winSizeMx':args.winSizeMx,
             'forceWinSize':args.forceWinSize,
+            'forceDiploid':args.forceDiploid,
             'chromosomes':chromosomes,
             'vcfDir':vcfDir,
             'projectDir':projectDir,
@@ -129,7 +136,7 @@ def main():
     
     
     ## Define parameters for msprime simulation
-    print("Simulating with window size = {} bp.".format(maxLen))
+    print("\nSimulating with window size = {} bp.".format(maxLen))
     a=0
     for i in range(nSamps-1):
         a+=1/(i+1)
@@ -138,7 +145,7 @@ def main():
     Ne=int(thetaW/(4.0 * assumedMu * ((1-mask_fraction) * maxLen)))
     rhoHi=assumedMu*args.upRTR
     if demHist:
-        MspD = convert_demHist(args.dem, nSamps, args.genTime, demHist)
+        MspD = convert_demHist(args.dem, nSamps, args.genTime, demHist, assumedMu)
         dg_params = {
                 'priorLowsRho':0.0,
                 'priorHighsRho':rhoHi,
@@ -183,7 +190,7 @@ def main():
 
 
     ## Simulate data
-    print("\nTraining set:")
+    print("Training set:")
     dg_train.simulateAndProduceTrees(numReps=args.nTrain,direc=trainDir,simulator="msprime",nProc=nProc)
     print("Validation set:")
     dg_vali.simulateAndProduceTrees(numReps=args.nVali,direc=valiDir,simulator="msprime",nProc=nProc)

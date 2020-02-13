@@ -4,10 +4,10 @@ Authors: Jared Galloway, Jeff Adrion
 
 from ReLERNN.imports import *
 
-class SequenceBatchGenerator(keras.utils.Sequence):
+class SequenceBatchGenerator(tf.keras.utils.Sequence):
 
     '''
-    This class, SequenceBatchGenerator, extends keras.utils.Sequence.
+    This class, SequenceBatchGenerator, extends tf.keras.utils.Sequence.
     So as to multithread the batch preparation in tandum with network training
     for maximum effeciency on the hardware provided.
 
@@ -327,7 +327,7 @@ class SequenceBatchGenerator(keras.utils.Sequence):
                 return [haps,pos], targets
 
 
-class VCFBatchGenerator(keras.utils.Sequence):
+class VCFBatchGenerator(tf.keras.utils.Sequence):
     """Basically same as SequenceBatchGenerator Class except for VCF files"""
     def __init__(self,
             INFO,
@@ -367,6 +367,7 @@ class VCFBatchGenerator(keras.utils.Sequence):
         self.posPadVal = posPadVal
         self.phase=phase
 
+
     def pad_HapsPosVCF(self,haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
         '''
         pads the haplotype and positions tensors
@@ -403,10 +404,19 @@ class VCFBatchGenerator(keras.utils.Sequence):
         return haps,pos,nSNPs
 
     def __getitem__(self, idx):
+        genos=self.GT
         GT=self.GT.to_haplotypes()
-        GTB=GT[:,1:2]
-        GTB=GTB[0].tolist()
-        if len(set(GTB)) == 1 and GTB[0] == -1:
+        diploid_check=[]
+        for n in range(1,len(genos[0]),2):
+            GTB=GT[:,n:n+1]
+            if np.unique(GTB).shape[0] == 1 and np.unique(GTB)[0] == -1:
+                diploid_check.append(0)
+            else:
+                diploid_check.append(1)
+                break
+        if 1 in diploid_check:
+            GT=np.array(GT)
+        else:
             GT=GT[:,::2] #Select only the first of the genotypes
         GT = np.where(GT == -1, 2, GT) # Code missing data as 2, these will ultimately end up being transformed to the pad value
 
@@ -441,7 +451,7 @@ class VCFBatchGenerator(keras.utils.Sequence):
             return [haps,pos], self.CHROM, self.WIN, self.INFO, nSNPs
 
 
-class POOLBatchGenerator(keras.utils.Sequence):
+class POOLBatchGenerator(tf.keras.utils.Sequence):
     """Basically same as SequenceBatchGenerator Class except for POOL files"""
     def __init__(self,
             INFO,
