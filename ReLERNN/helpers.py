@@ -316,7 +316,16 @@ def runModels(ModelFuncPointer,
             nCPU = 1,
             gpuID = 0):
 
-    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
+
+    os.environ["CUDA_VISIBLE_DEVICES"]=str(gpuID)
+
+    ## The following code block appears necessary for running with tf2 and cudnn
+    from tensorflow.compat.v1 import ConfigProto
+    from tensorflow.compat.v1 import Session
+    config = ConfigProto()
+    config.gpu_options.allow_growth = True
+    sess = Session(config=config)
+    ###
 
     if(resultsFile == None):
 
@@ -339,11 +348,10 @@ def runModels(ModelFuncPointer,
                 save_best_only=True)
             ]
 
-    history = model.fit_generator(TrainGenerator,
+    history = model.fit(TrainGenerator,
         steps_per_epoch= epochSteps,
         epochs=numEpochs,
         validation_data=ValidationGenerator,
-        validation_steps=validationSteps,
         use_multiprocessing=True,
         callbacks=callbacks_list,
         max_queue_size=nCPU,

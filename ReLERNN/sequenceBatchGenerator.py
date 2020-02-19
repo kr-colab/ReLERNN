@@ -273,7 +273,6 @@ class SequenceBatchGenerator(tf.keras.utils.Sequence):
 
         haps = []
         pos = []
-
         for treeIndex in batchTreeIndices:
             Hfilepath = os.path.join(self.treesDirectory,str(treeIndex) + "_haps.npy")
             Pfilepath = os.path.join(self.treesDirectory,str(treeIndex) + "_pos.npy")

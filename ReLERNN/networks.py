@@ -4,18 +4,11 @@ Authors: Jeff Adrion, Andrew Kern, Jared Galloway
 
 from ReLERNN.imports import *
 
-### The following code block appears necessary for running with tf/2.0.0
-from tensorflow.compat.v1 import ConfigProto
-from tensorflow.compat.v1 import InteractiveSession
-config = ConfigProto()
-config.gpu_options.allow_growth = True
-session = InteractiveSession(config=config)
-###
-
 def GRU_TUNED84(x,y):
     '''
     Same as GRU_VANILLA but with dropout AFTER each dense layer.
     '''
+
     haps,pos = x
 
     numSNPs = haps[0].shape[0]
