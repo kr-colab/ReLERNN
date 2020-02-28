@@ -324,7 +324,7 @@ def runModels(ModelFuncPointer,
     from tensorflow.compat.v1 import Session
     config = ConfigProto()
     config.gpu_options.allow_growth = True
-    sess = Session(config=config)
+    Session(config=config)
     ###
 
     if(resultsFile == None):
@@ -349,14 +349,11 @@ def runModels(ModelFuncPointer,
             ]
 
     history = model.fit(TrainGenerator,
-        steps_per_epoch= epochSteps,
+        steps_per_epoch=epochSteps,
         epochs=numEpochs,
         validation_data=ValidationGenerator,
-        use_multiprocessing=True,
-        callbacks=callbacks_list,
-        max_queue_size=nCPU,
-        workers=nCPU,
-        )
+        use_multiprocessing=False,
+        callbacks=callbacks_list)
 
     # Write the network
     if(network != None):
