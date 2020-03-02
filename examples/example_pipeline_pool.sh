@@ -19,8 +19,8 @@ ${SIMULATE} \
     --projectDir ${DIR} \
     --assumedMu ${MU} \
     --upperRhoThetaRatio ${RTR} \
-    --nTrain 1000 \
-    --nVali 100 \
+    --nTrain 12800 \
+    --nVali 2000 \
     --nTest 100 \
     --nCPU ${CPU}
 
@@ -42,5 +42,5 @@ ${PREDICT} \
 ${BSCORRECT} \
     --projectDir ${DIR} \
     --nCPU ${CPU} \
-    --nSlice 10 \
-    --nReps 10
+    --nSlice 2 \
+    --nReps 2
