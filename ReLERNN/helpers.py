@@ -258,6 +258,7 @@ def zscoreTargets(self):
 def load_and_predictVCF(VCFGenerator,
             resultsFile=None,
             network=None,
+            chromStr=None,
             minS = 50,
             gpuID = 0,
             hotspots = False):
@@ -289,7 +290,7 @@ def load_and_predictVCF(VCFGenerator,
     else:
         u=np.mean(info["rho"])
         sd=np.std(info["rho"])
-        last = int(os.path.basename(resultsFile).split(".")[0].split("-")[-1])
+        last = int(chromStr.split(":")[-1].split("-")[-1])
         with open(resultsFile, "w") as fOUT:
             ct=0
             fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate"))
