@@ -109,6 +109,7 @@ def main():
         load_and_predictVCF(VCFGenerator=pred_sequence,
                 resultsFile=pred_resultFile,
                 network=[modelSave,weightsSave],
+                chromStr=wins[i][0],
                 minS=args.minS,
                 gpuID=args.gpuID)
 
