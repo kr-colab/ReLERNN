@@ -8,6 +8,7 @@ def GRU_TUNED84(x,y):
     '''
     Same as GRU_VANILLA but with dropout AFTER each dense layer.
     '''
+
     haps,pos = x
 
     numSNPs = haps[0].shape[0]

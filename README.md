@@ -3,10 +3,11 @@
 ====================================================================
 
 ReLERNN uses deep learning to infer the genome-wide landscape of recombination from as few as four individually sequenced chromosomes, or from allele frequencies inferred by pooled sequencing.
-This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly. The current manuscript detailing ReLERNN can be found [here](https://www.biorxiv.org/content/biorxiv/early/2019/08/16/662247.full.pdf).
+This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly. The manuscript detailing ReLERNN can be found [here](https://academic.oup.com/mbe/advance-article/doi/10.1093/molbev/msaa038/5741419).
 
 ## Recommended installation on linux
-Install `tensorflow 2` on your system. Directions can be found [here](https://www.tensorflow.org/install). You will need to install the CUDA toolkit and CuDNN as well.
+Install `tensorflow 2` on your system. Directions can be found [here](https://www.tensorflow.org/install). You will also need to install the CUDA toolkit and CuDNN.
+ReLERNN requires the use of a CUDA-Enabled NVIDIA GPU. The current version of ReLERNN has been successfully tested with tensorflow/2.1.0, cudatoolkit/10.1.243, and cudnn/7.6.5.
 
 Further dependencies for ReLERNN can be installed with pip.
 This is done with the following commands:
@@ -35,7 +36,6 @@ The latter is the finalized output file with your recombination rate predictions
 The above example took 57 seconds to complete on a Xeon machine using four CPUs and one NVIDIA 2070 GPU.
 Note that the parameters used for this example were designed only to test the success of the installation, not to make accurate predictions.
 Please use the guidelines below for the best results when analyzing real data.
-ReLERNN requires the use of a CUDA-Enabled NVIDIA GPU.
 
 You can now test the functionality of ReLERNN for use with pool-seq data by using the following commands:
 
