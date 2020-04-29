@@ -189,7 +189,7 @@ def main():
     correctedfile=pred_resultFile.replace(".txt", ".BSCORRECTED.txt")
     with open(correctedfile, "w") as fout, open(pred_resultFile, "r") as fin:
         for line in fin:
-            if not line.startswith("chrom"):
+            if not line.startswith("chrom\t"):
                 ar=line.split()
                 rate=float(ar[4])
                 C=get_corrected(rate,bs)

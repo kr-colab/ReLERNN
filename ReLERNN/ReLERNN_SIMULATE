@@ -142,7 +142,7 @@ def main():
         a+=1/(i+1)
     thetaW=maxS/a
     assumedMu = args.mu
-    Ne=int(thetaW/(4.0 * assumedMu * ((1-mask_fraction) * maxLen)))
+    Ne=thetaW/(4.0 * assumedMu * ((1-mask_fraction) * maxLen))
     rhoHi=assumedMu*args.upRTR
     if demHist:
         MspD = convert_demHist(args.dem, nSamps, args.genTime, demHist, assumedMu)
