@@ -349,12 +349,22 @@ def runModels(ModelFuncPointer,
                 save_best_only=True)
             ]
 
-    history = model.fit(TrainGenerator,
-        steps_per_epoch=epochSteps,
-        epochs=numEpochs,
-        validation_data=ValidationGenerator,
-        use_multiprocessing=False,
-        callbacks=callbacks_list)
+    if nCPU > 1:
+        history = model.fit(TrainGenerator,
+            steps_per_epoch=epochSteps,
+            epochs=numEpochs,
+            validation_data=ValidationGenerator,
+            callbacks=callbacks_list,
+            use_multiprocessing=True,
+            max_queue_size=nCPU,
+            workers=nCPU)
+    else:
+        history = model.fit(TrainGenerator,
+            steps_per_epoch=epochSteps,
+            epochs=numEpochs,
+            validation_data=ValidationGenerator,
+            callbacks=callbacks_list,
+            use_multiprocessing=False)
 
     # Write the network
     if(network != None):
