@@ -13,10 +13,9 @@ Further dependencies for ReLERNN can be installed with pip.
 This is done with the following commands:
 
 ```
-$ git clone https://github.com/kern-lab/ReLERNN.git
+$ git clone https://github.com/kr-colab/ReLERNN.git
 $ cd ReLERNN
-$ pip install -r requirements.txt
-$ python setup.py install
+$ pip install .
 ```
 
 It should be as simple as that.
