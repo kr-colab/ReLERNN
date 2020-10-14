@@ -21,7 +21,8 @@ def main():
     parser.add_argument('-u','--assumedMu',dest='mu',help='Assumed per-base mutation rate',type=float,default=1e-8)
     parser.add_argument('-l','--assumedGenTime',dest='genTime',help='Assumed generation time (in years)',type=float)
     parser.add_argument('-r','--upperRhoThetaRatio',dest='upRTR',help='Assumed upper bound for the ratio of rho to theta',type=float,default=1.0)
-    parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
+    parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=None)
+    parser.add_argument('-s','--seed',dest='seed',help='Random seed',type=int,default=None)
     parser.add_argument('--maxSites',dest='winSizeMx',help='Max number of sites per window to train on. Important: too many sites causes problems in training (see README)!',type=int,default=1750)
     parser.add_argument('--forceWinSize',dest='forceWinSize',help='USED ONLY FOR TESTING, LEAVE AS DEFAULT',type=int,default=0)
     parser.add_argument('--maskThresh',dest='maskThresh',help='Discard windows where >= maskThresh percent of sites are inaccessible',type=float,default=1.0)
@@ -30,7 +31,22 @@ def main():
     parser.add_argument('--nTest',dest='nTest',help='Number of test examples to simulate',type=int,default=1000)
     args = parser.parse_args()
     
-    # Ensure all required arguments are provided
+    
+    ## Set seed
+    if args.seed:
+        os.environ['PYTHONHASHSEED']=str(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+    
+    
+    ## Set number of cores
+    if args.nCPU:
+        nProc = args.nCPU
+    else:
+        nProc = mp.cpu_count()
+    
+    
+    ## Ensure all required arguments are provided
     if not args.samD:
         print("Error: assumed sample depth must be provided")
         sys.exit(1)
@@ -59,7 +75,6 @@ def main():
 
     ## Set up the directory structure to store the simulations data.
     time.sleep(5)
-    nProc = args.nCPU
     trainDir = os.path.join(projectDir,"train")
     valiDir = os.path.join(projectDir,"vali")
     testDir = os.path.join(projectDir,"test")
@@ -93,7 +108,8 @@ def main():
             'chromosomes':chromosomes,
             'poolDir':poolDir,
             'projectDir':projectDir,
-            'networkDir':networkDir
+            'networkDir':networkDir,
+            'seed':args.seed
               }
     pool_manager = Manager(**manager_params)
     
@@ -133,6 +149,7 @@ def main():
                 'winMasks':win_masks,
                 'maskThresh':args.maskThresh,
                 'MspDemographics':MspD,
+                'seed':args.seed
                   }
 
     else:
@@ -145,6 +162,7 @@ def main():
             'ChromosomeLength':maxLen,
             'winMasks':win_masks,
             'maskThresh':args.maskThresh,
+            'seed':args.seed
                   }
 
 

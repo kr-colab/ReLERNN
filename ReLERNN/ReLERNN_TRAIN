@@ -13,8 +13,20 @@ def main():
     parser.add_argument('--nEpochs',dest='nEpochs',help='Maximum number of epochs to train (EarlyStopping is implemented for validation accuracy)', type=int, default=1000)
     parser.add_argument('--nValSteps',dest='nValSteps',help='Number of validation steps', type=int, default=20)
     parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
+    parser.add_argument('-s','--seed',dest='seed',help='Random seed',type=int,default=None)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default=0)
     args = parser.parse_args()
+    
+    
+    ## Set seed
+    if args.seed:
+        os.environ['PYTHONHASHSEED']=str(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+    
+    
+    ## Set number of cores
+    nProc = args.nCPU
     
     
     ## Set up the directory structure to store the simulations data.
@@ -65,7 +77,8 @@ def main():
         'derVal':1,
         'realLinePos':True,
         'posPadVal':0,
-        'seqD':None
+        'seqD':None,
+        'seed':args.seed
               }
 
 
@@ -103,7 +116,7 @@ def main():
             network=[modelSave,weightsSave],
             numEpochs=args.nEpochs,
             validationSteps=args.nValSteps,
-            nCPU=args.nCPU,
+            nCPU=nProc,
             gpuID=args.gpuID)
 
 

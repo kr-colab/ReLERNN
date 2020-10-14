@@ -2,9 +2,9 @@ SIMULATE="ReLERNN_SIMULATE"
 TRAIN="ReLERNN_TRAIN"
 PREDICT="ReLERNN_PREDICT"
 BSCORRECT="ReLERNN_BSCORRECT"
-CPU="4"
+SEED="42"
 MU="1e-8"
-RTR="1"
+URTR="1"
 DIR="./example_output/"
 VCF="./example.vcf"
 GENOME="./genome.bed"
@@ -15,29 +15,30 @@ ${SIMULATE} \
     --vcf ${VCF} \
     --genome ${GENOME} \
     --mask ${MASK} \
-    --phased \
     --projectDir ${DIR} \
     --assumedMu ${MU} \
-    --upperRhoThetaRatio ${RTR} \
-    --nTrain 12800 \
+    --upperRhoThetaRatio ${URTR} \
+    --nTrain 13000 \
     --nVali 2000 \
     --nTest 100 \
-    --nCPU ${CPU}
+    --seed ${SEED}
 
 # Train network
 ${TRAIN} \
     --projectDir ${DIR} \
     --nEpochs 2 \
-    --nValSteps 2
+    --nValSteps 2 \
+    --seed ${SEED}
 
 # Predict
 ${PREDICT} \
     --vcf ${VCF} \
-    --projectDir ${DIR}
+    --projectDir ${DIR} \
+    --seed ${SEED}
 
 # Parametric Bootstrapping
 ${BSCORRECT} \
     --projectDir ${DIR} \
-    --nCPU ${CPU} \
     --nSlice 2 \
-    --nReps 2
+    --nReps 2 \
+    --seed ${SEED}

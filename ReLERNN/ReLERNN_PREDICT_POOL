@@ -14,8 +14,17 @@ def main():
     parser.add_argument('-p','--pool',dest='pool',help='Filtered and QC-checked pool file')
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
     parser.add_argument('--minSites',dest='minS',help='Minimum number of SNPs in a genomic window required to return a prediction', type=int, default = 50)
+    parser.add_argument('--batchSizeOverride',dest='bso',help='Batch size to use when number of windows along a chromosome for low memory applications', type=int, default = None)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default = 0)
+    parser.add_argument('-s','--seed',dest='seed',help='Random seed',type=int,default=None)
     args = parser.parse_args()
+    
+    
+    ## Set seed
+    if args.seed:
+        os.environ['PYTHONHASHSEED']=str(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
     
 
     ## Set up the directory structure to store the simulations data.
@@ -40,7 +49,7 @@ def main():
     with open(winFILE, "r") as fIN:
         for line in fIN:
             ar=line.split()
-            wins.append([ar[0],int(ar[1]),int(ar[2]),int(ar[3]),int(ar[4]),int(ar[5])])
+            wins.append([ar[0],int(ar[1]),int(ar[2]),int(ar[3]),int(ar[4]),int(ar[5]),int(ar[6])])
             maxSimS=max([maxSimS, int(ar[5])])
 
 
@@ -71,9 +80,14 @@ def main():
 
         ## Identify parameters used to train
         DsInfoDir = pickle.load(open(os.path.join(trainDir,"info.p"),"rb"))
-        winSize=wins[i][2]
-        batchSize=wins[i][4]
+        winLen=wins[i][2]
+        numWins=wins[i][6]
+        if args.bso:
+            batchSize = args.bso
+        else:
+            batchSize = wins[i][6]
 
+        
         batchPars = pickle.load(open(os.path.join(networkDir,"batchPars.p"),"rb"))
         normType = batchPars["targetNormalization"]
     
@@ -82,8 +96,9 @@ def main():
         bds_pred_params = {
             'INFO':DsInfoDir,
             'CHROM':chrom,
-            'WIN':winSize,
-            'IDs':get_index(pos,winSize),
+            'winLen':winLen,
+            'numWins':numWins,
+            'IDs':get_index(pos,winLen),
             'GT':fqs,
             'POS':pos,
             'batchSize': batchSize,
@@ -96,21 +111,24 @@ def main():
             'derVal':1,
             'realLinePos':True,
             'posPadVal':0,
-            'normType':normType
+            'normType':normType,
+            'seed':args.seed
                   }
 
 
         ### Define sequence batch generator
-        pred_sequence = POOLBatchGenerator(**bds_pred_params)
+        pool_gen = POOLBatchGenerator(**bds_pred_params)
 
 
         ## Load trained model and make predictions on pool data
         pred_resultFile = os.path.join(projectDir,wins[i][0]+".CHPREDICT.txt")
-        load_and_predictVCF(VCFGenerator=pred_sequence,
+        load_and_predictVCF(VCFGenerator=pool_gen,
                 resultsFile=pred_resultFile,
                 network=[modelSave,weightsSave],
                 chromStr=wins[i][0],
                 minS=args.minS,
+                numWins=numWins,
+                batchSize=batchSize,
                 gpuID=args.gpuID)
 
 

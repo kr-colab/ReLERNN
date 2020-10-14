@@ -41,7 +41,8 @@ class Simulator(object):
         phased = None,
         phaseError = None,
         hotspots = False,
-        nHotWins = 10
+        nHotWins = 10,
+        seed = None
         ):
 
         self.N = N
@@ -63,6 +64,13 @@ class Simulator(object):
         self.phaseError = phaseError
         self.hotspots = hotspots
         self.nHotWins = nHotWins
+        self.seed = seed
+
+
+        if self.seed:
+            os.environ['PYTHONHASHSEED']=str(self.seed)
+            random.seed(self.seed)
+            np.random.seed(self.seed)
 
 
     def runOneMsprimeSim(self,simNum,direc):
@@ -74,6 +82,10 @@ class Simulator(object):
 
         MR = self.mu[simNum]
         RR = self.rho[simNum]
+        SEED = self.seed[simNum]
+        os.environ['PYTHONHASHSEED']=str(SEED)
+        random.seed(SEED)
+        np.random.seed(SEED)
 
         if self.hotspots:
             hotspotMultiplier = self.hotWin[simNum]
@@ -107,6 +119,7 @@ class Simulator(object):
                 PC = self.MspDemographics["population_configurations"]
                 MM = self.MspDemographics["migration_matrix"]
                 ts = msp.simulate(
+                    random_seed=SEED,
                     mutation_rate=MR,
                     population_configurations = PC,
                     migration_matrix = MM,
@@ -116,6 +129,7 @@ class Simulator(object):
 
             else:
                 ts = msp.simulate(
+                    random_seed = SEED,
                     sample_size = self.N,
                     Ne = self.Ne,
                     mutation_rate=MR,
@@ -128,6 +142,7 @@ class Simulator(object):
                 PC = self.MspDemographics["population_configurations"]
                 MM = self.MspDemographics["migration_matrix"]
                 ts = msp.simulate(
+                    random_seed=SEED,
                     length=self.ChromosomeLength,
                     mutation_rate=MR,
                     recombination_rate=RR,
@@ -137,6 +152,7 @@ class Simulator(object):
                 )
             else:
                 ts = msp.simulate(
+                    random_seed = SEED,
                     sample_size = self.N,
                     Ne = self.Ne,
                     length=self.ChromosomeLength,
@@ -211,6 +227,7 @@ class Simulator(object):
 
         (str,str) -> None
         '''
+
         if self.hotspots:
             self.hotWin=np.zeros(numReps)
             for i in range(int(numReps/2.0)):
@@ -229,6 +246,8 @@ class Simulator(object):
         for i in range(numReps):
             randomTargetParameter = np.random.uniform(self.priorLowsMu,self.priorHighsMu)
             self.mu[i] = randomTargetParameter
+
+        self.seed=np.repeat(self.seed,numReps)
 
         try:
             assert((simulator=='msprime') | (simulator=='SLiM'))

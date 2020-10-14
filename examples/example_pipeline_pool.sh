@@ -2,9 +2,9 @@ SIMULATE="ReLERNN_SIMULATE_POOL"
 TRAIN="ReLERNN_TRAIN_POOL"
 PREDICT="ReLERNN_PREDICT_POOL"
 BSCORRECT="ReLERNN_BSCORRECT"
-CPU="4"
+SEED="42"
 MU="1e-8"
-RTR="1"
+URTR="1"
 DIR="./example_output_pool/"
 POOL="./example.pool"
 GENOME="./genome.bed"
@@ -18,11 +18,11 @@ ${SIMULATE} \
     --mask ${MASK} \
     --projectDir ${DIR} \
     --assumedMu ${MU} \
-    --upperRhoThetaRatio ${RTR} \
-    --nTrain 12800 \
+    --upperRhoThetaRatio ${URTR} \
+    --nTrain 13000 \
     --nVali 2000 \
     --nTest 100 \
-    --nCPU ${CPU}
+    --seed ${SEED}
 
 # Train network
 ${TRAIN} \
@@ -31,16 +31,17 @@ ${TRAIN} \
     --maf 0.05 \
     --nEpochs 2 \
     --nValSteps 2 \
-    --nCPU ${CPU}
+    --seed ${SEED}
 
 # Predict
 ${PREDICT} \
     --pool ${POOL} \
-    --projectDir ${DIR}
+    --projectDir ${DIR} \
+    --seed ${SEED}
 
 # Parametric Bootstrapping
 ${BSCORRECT} \
     --projectDir ${DIR} \
-    --nCPU ${CPU} \
     --nSlice 2 \
-    --nReps 2
+    --nReps 2 \
+    --seed ${SEED}

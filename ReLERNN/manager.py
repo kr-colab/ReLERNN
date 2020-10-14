@@ -26,7 +26,8 @@ class Manager(object):
         vcfDir = None,
         poolDir = None,
         projectDir = None,
-        networkDir = None
+        networkDir = None,
+        seed = None
         ):
 
         self.vcf = vcf
@@ -40,6 +41,13 @@ class Manager(object):
         self.poolDir = poolDir
         self.projectDir = projectDir
         self.networkDir = networkDir
+        self.seed = seed
+
+
+        if self.seed:
+            os.environ['PYTHONHASHSEED']=str(self.seed)
+            random.seed(self.seed)
+            np.random.seed(self.seed)
 
 
     def splitVCF(self,nProc=1):

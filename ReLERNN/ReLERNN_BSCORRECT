@@ -20,7 +20,8 @@ def ParametricBootStrap(simParameters,
                         gpuID=0,
                         tempDir="./Temp",
                         out="./ParametricBootstrap.p",
-                        nCPU=1):
+                        nCPU=1,
+                        seed=None):
 
 
     '''
@@ -79,6 +80,7 @@ def ParametricBootStrap(simParameters,
         params = copy.deepcopy(simParameters)
         params["priorLowsRho"] = r
         params["priorHighsRho"] = r
+        params["seed"] = seed
         params.pop("bn", None)
         simulator = Simulator(**params)
 
@@ -91,6 +93,7 @@ def ParametricBootStrap(simParameters,
         batch_params['treesDirectory'] = tempDir
         batch_params['batchSize'] = repsPerSlice
         batch_params['shuffleExamples'] = False
+        batch_params['seed'] = seed
         batchGenerator= SequenceBatchGenerator(**batch_params)
 
         x,y = batchGenerator.__getitem__(0)
@@ -119,13 +122,28 @@ def ParametricBootStrap(simParameters,
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-d','--projectDir',dest='outDir',help='Directory for all project output. NOTE: the same projectDir must be used for all functions of ReLERNN',default=None)
-    parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=1)
+    parser.add_argument('-t','--nCPU',dest='nCPU',help='Number of CPUs to use',type=int,default=None)
+    parser.add_argument('-s','--seed',dest='seed',help='Random seed',type=int,default=None)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default=0)
     parser.add_argument('--nSlice',dest='nSlice',help='Number of recombination rate bins to simulate over', type=int, default=100)
     parser.add_argument('--nReps',dest='nReps',help='Number of simulations per step', type=int, default=1000)
     args = parser.parse_args()
 
+    
+    ## Set seed
+    if args.seed:
+        os.environ['PYTHONHASHSEED']=str(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
+    
+    
+    ## Set number of cores
+    if args.nCPU:
+        nProc = args.nCPU
+    else:
+        nProc = mp.cpu_count()
 
+    
     ## Set up the directory structure and output files
     if not args.outDir:
         print("Warning: No project directory found, using current working directory.")
@@ -162,7 +180,7 @@ def main():
     pred_resultFile = pred_resultFiles[0]
 
 
-    ## Strap it on!
+    ## Run parametric bootstrap
     ParametricBootStrap(
             simPars,
             batchPars,
@@ -173,7 +191,8 @@ def main():
             gpuID=args.gpuID,
             out=bs_resultFile,
             tempDir=bsDir,
-            nCPU=args.nCPU)
+            nCPU=nProc,
+            seed=args.seed)
 
 
     ## Plot results from bootstrap
