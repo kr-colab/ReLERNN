@@ -260,8 +260,14 @@ def load_and_predictVCF(VCFGenerator,
             network=None,
             chromStr=None,
             minS = 50,
+            numWins = None,
+            batchSize = None,
             gpuID = 0,
             hotspots = False):
+
+    if hotspots:
+        print("Error: hotspot detection under construction")
+        sys.exit(1)
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
 
@@ -284,27 +290,20 @@ def load_and_predictVCF(VCFGenerator,
         print("Error: no pretrained network found!")
         sys.exit(1)
 
-    x,chrom,win,info,nSNPs = VCFGenerator.__getitem__(0)
-    predictions = model.predict(x)
+    num_batches = int(np.ceil(numWins / batchSize))
 
-    if hotspots:
-        with open(resultsFile, "w") as fOUT:
-            ct=0
-            fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","hotspot"))
-            for i in range(len(predictions)):
-                if nSNPs[i] >= minS:
-                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,ct+win,nSNPs[i],predictions[i][0]))
-                ct+=win
-    else:
-        u=np.mean(info["rho"])
-        sd=np.std(info["rho"])
+    with open(resultsFile, "w") as fOUT:
+        ct=0
         last = int(chromStr.split(":")[-1].split("-")[-1])
-        with open(resultsFile, "w") as fOUT:
-            ct=0
-            fOUT.write("%s\t%s\t%s\t%s\t%s\n" %("chrom","start","end","nSites","recombRate"))
-            for i in range(len(predictions)):
-                if nSNPs[i] >= minS:
-                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,min(ct+win,last),nSNPs[i],relu(sd*predictions[i][0]+u)))
+        fOUT.write("\t".join([str(head) for head in ["chrom","start","end","nSites","recombRate"]])+"\n")
+        for i in range(num_batches):
+            X,chrom,win,info,nSNPs = VCFGenerator.__getitem__(i)
+            predictions = model.predict(X)
+            u=np.mean(info["rho"])
+            sd=np.std(info["rho"])
+            for j in range(len(predictions)):
+                if nSNPs[j] >= minS:
+                    fOUT.write("%s\t%s\t%s\t%s\t%s\n" %(chrom,ct,min(ct+win,last),nSNPs[j],relu(sd*predictions[j][0]+u)))
                 ct+=win
 
     return None
@@ -354,7 +353,8 @@ def runModels(ModelFuncPointer,
             ModelCheckpoint(
                 filepath=network[1],
                 monitor='val_loss',
-                save_best_only=True)
+                save_best_only=True),
+            TerminateOnNaN()
             ]
 
     if nCPU > 1:
@@ -408,25 +408,25 @@ def runModels(ModelFuncPointer,
 
 #-------------------------------------------------------------------------------------------
 
-def indicesGenerator(batchSize,numReps):
-    '''
-    Generate indices randomly from range (0,numReps) in batches of size batchSize
-    without replacement.
-
-    This is for the batch generator to randomly choose trees from a directory
-    but make sure
-    '''
-    availableIndices = np.arange(numReps)
-    np.random.shuffle(availableIndices)
-    ci = 0
-    while 1:
-        if((ci+batchSize) > numReps):
-            ci = 0
-            np.random.shuffle(availableIndices)
-        batchIndices = availableIndices[ci:ci+batchSize]
-        ci = ci+batchSize
-
-        yield batchIndices
+#def indicesGenerator(batchSize,numReps):
+#    '''
+#    Generate indices randomly from range (0,numReps) in batches of size batchSize
+#    without replacement.
+#
+#    This is for the batch generator to randomly choose trees from a directory
+#    but make sure
+#    '''
+#    availableIndices = np.arange(numReps)
+#    np.random.shuffle(availableIndices)
+#    ci = 0
+#    while 1:
+#        if((ci+batchSize) > numReps):
+#            ci = 0
+#            np.random.shuffle(availableIndices)
+#        batchIndices = availableIndices[ci:ci+batchSize]
+#        ci = ci+batchSize
+#
+#        yield batchIndices
 
 #-------------------------------------------------------------------------------------------
 

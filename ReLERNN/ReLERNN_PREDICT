@@ -16,10 +16,19 @@ def main():
     parser.add_argument('--phased',help='VCF file is phased',default=False, action='store_true')
     parser.add_argument('--unphased',dest='phased',help='VCF file is unphased',action='store_false')
     parser.add_argument('--minSites',dest='minS',help='Minimum number of SNPs in a genomic window required to return a prediction', type=int, default = 50)
+    parser.add_argument('--batchSizeOverride',dest='bso',help='Batch size to use when number of windows along a chromosome for low memory applications', type=int, default = None)
     parser.add_argument('--gpuID',dest='gpuID',help='Identifier specifying which GPU to use', type=int, default = 0)
+    parser.add_argument('-s','--seed',dest='seed',help='Random seed',type=int,default=None)
     args = parser.parse_args()
     
+    
+    ## Set seed
+    if args.seed:
+        os.environ['PYTHONHASHSEED']=str(args.seed)
+        random.seed(args.seed)
+        np.random.seed(args.seed)
 
+    
     ## Set up the directory structure to store the simulations data.
     if not args.outDir:
         print("Warning: No project directory found, using current working directory.")
@@ -42,7 +51,7 @@ def main():
     with open(winFILE, "r") as fIN:
         for line in fIN:
             ar=line.split()
-            wins.append([ar[0],int(ar[1]),int(ar[2]),int(ar[3]),int(ar[4]),int(ar[5])])
+            wins.append([ar[0],int(ar[1]),int(ar[2]),int(ar[3]),int(ar[4]),int(ar[5]),int(ar[6])])
             maxSimS=max([maxSimS, int(ar[5])])
 
 
@@ -71,16 +80,21 @@ def main():
 
         ## Identify parameters used to train
         DsInfoDir = pickle.load(open(os.path.join(trainDir,"info.p"),"rb"))
-        winSize=wins[i][2]
-        batchSize=wins[i][4]
-
-
+        winLen=wins[i][2]
+        numWins=wins[i][6]
+        if args.bso:
+            batchSize = args.bso
+        else:
+            batchSize = wins[i][6]
+        
+        
         ## Set network parameters
         bds_pred_params = {
             'INFO':DsInfoDir,
             'CHROM':chroms[0],
-            'WIN':winSize,
-            'IDs':get_index(pos,winSize),
+            'winLen':winLen,
+            'numWins':numWins,
+            'IDs':get_index(pos,winLen),
             'GT':genos,
             'POS':pos,
             'batchSize': batchSize,
@@ -93,26 +107,29 @@ def main():
             'derVal':1,
             'realLinePos':True,
             'posPadVal':0,
-            'phase':args.phased
+            'phase':args.phased,
+            'seed':args.seed
                   }
 
 
         ### Define sequence batch generator
-        pred_sequence = VCFBatchGenerator(**bds_pred_params)
-
+        vcf_gen = VCFBatchGenerator(**bds_pred_params)
+        
 
         ## Load trained model and make predictions on VCF data
         pred_resultFile = os.path.join(projectDir,wins[i][0]+".CHPREDICT.txt")
         pred_resultFiles.append(pred_resultFile)
-        load_and_predictVCF(VCFGenerator=pred_sequence,
+        load_and_predictVCF(VCFGenerator=vcf_gen,
                 resultsFile=pred_resultFile,
                 network=[modelSave,weightsSave],
                 chromStr=wins[i][0],
                 minS=args.minS,
+                numWins=numWins,
+                batchSize=batchSize,
                 gpuID=args.gpuID)
 
-
-    ## Combine chromosome predictions in whole genome prediction file and rm chromosome files
+    
+        ## Combine chromosome predictions in whole genome prediction file and rm chromosome files
     genPredFILE=os.path.join(projectDir,bn.replace(".vcf",".PREDICT.txt"))
     ct=0
     with open(genPredFILE, "w") as fOUT:

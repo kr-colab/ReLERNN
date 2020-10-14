@@ -44,7 +44,8 @@ class SequenceBatchGenerator(tf.keras.utils.Sequence):
             splitFLAG = False,
             seqD = None,
             maf = None,
-            hotspots = False
+            hotspots = False,
+            seed = None
             ):
 
         self.treesDirectory = treesDirectory
@@ -68,6 +69,12 @@ class SequenceBatchGenerator(tf.keras.utils.Sequence):
         self.seqD = seqD
         self.maf = maf
         self.hotspots = hotspots
+        self.seed = seed
+
+        if self.seed:
+            os.environ['PYTHONHASHSEED']=str(self.seed)
+            random.seed(self.seed)
+            np.random.seed(self.seed)
 
         if(targetNormalization != None):
             if self.hotspots:
@@ -265,6 +272,7 @@ class SequenceBatchGenerator(tf.keras.utils.Sequence):
         return X,y
 
     def shuffleIndividuals(self,x):
+
         t = np.arange(x.shape[1])
         np.random.shuffle(t)
         return x[:,t]
@@ -280,7 +288,6 @@ class SequenceBatchGenerator(tf.keras.utils.Sequence):
             P = np.load(Pfilepath)
             haps.append(H)
             pos.append(P)
-
         respectiveNormalizedTargets = [[t] for t in self.normalizedTargets[batchTreeIndices]]
         targets = np.array(respectiveNormalizedTargets)
 
@@ -331,7 +338,8 @@ class VCFBatchGenerator(tf.keras.utils.Sequence):
     def __init__(self,
             INFO,
             CHROM,
-            WIN,
+            winLen,
+            numWins,
             IDs,
             GT,
             POS,
@@ -345,12 +353,15 @@ class VCFBatchGenerator(tf.keras.utils.Sequence):
             derVal = 1,
             realLinePos = True,
             posPadVal = 0,
-            phase=None
+            phase=None,
+            seed=None
             ):
 
         self.INFO=INFO
         self.CHROM=CHROM
-        self.WIN=WIN
+        self.winLen=winLen
+        self.numWins=numWins
+        self.indices=np.arange(self.numWins)
         self.IDs=IDs
         self.GT=GT
         self.POS=POS
@@ -365,6 +376,12 @@ class VCFBatchGenerator(tf.keras.utils.Sequence):
         self.realLinePos = realLinePos
         self.posPadVal = posPadVal
         self.phase=phase
+        self.seed=seed
+
+        if self.seed:
+            os.environ['PYTHONHASHSEED']=str(self.seed)
+            random.seed(self.seed)
+            np.random.seed(self.seed)
 
 
     def pad_HapsPosVCF(self,haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
@@ -402,7 +419,23 @@ class VCFBatchGenerator(tf.keras.utils.Sequence):
             pos = np.pad(pos,((0,0),(fw,fw)),"constant",constant_values=-1.0)
         return haps,pos,nSNPs
 
+
     def __getitem__(self, idx):
+
+        indices = self.indices[idx*self.batch_size:(idx+1)*self.batch_size]
+        X, nSNPs = self.__data_generation(indices)
+
+        return X, self.CHROM, self.winLen, self.INFO, nSNPs
+
+
+    def __data_generation(self, indices):
+
+        if self.seed:
+            os.environ['PYTHONHASHSEED']=str(self.seed)
+            random.seed(self.seed)
+            np.random.seed(self.seed)
+
+        #def __getitem__(self, idx):
         genos=self.GT
         GT=self.GT.to_haplotypes()
         diploid_check=[]
@@ -423,20 +456,19 @@ class VCFBatchGenerator(tf.keras.utils.Sequence):
             np.random.shuffle(np.transpose(GT))
 
         haps,pos=[],[]
-        for i in range(len(self.IDs)):
+        for i in indices:
             haps.append(GT[self.IDs[i][0]:self.IDs[i][1]])
             pos.append(self.POS[self.IDs[i][0]:self.IDs[i][1]])
 
         if(self.realLinePos):
             for i in range(len(pos)):
-                pos[i] = (pos[i]-(self.WIN*i)) / self.WIN
+                pos[i] = (pos[i]-(self.winLen*indices[i])) / self.winLen
 
         if(self.sortInds):
             for i in range(len(haps)):
                 haps[i] = np.transpose(sort_min_diff(np.transpose(haps[i])))
 
         if(self.maxLen != None):
-            ##then we're probably padding
             haps,pos,nSNPs = self.pad_HapsPosVCF(haps,pos,
                 maxSNPs=self.maxLen,
                 frameWidth=self.frameWidth,
@@ -447,7 +479,7 @@ class VCFBatchGenerator(tf.keras.utils.Sequence):
             haps=np.where(haps > 1.0, self.padVal, haps)
             haps=np.where(haps == 1.0, self.derVal, haps)
 
-            return [haps,pos], self.CHROM, self.WIN, self.INFO, nSNPs
+            return [haps,pos], nSNPs
 
 
 class POOLBatchGenerator(tf.keras.utils.Sequence):
@@ -455,7 +487,8 @@ class POOLBatchGenerator(tf.keras.utils.Sequence):
     def __init__(self,
             INFO,
             CHROM,
-            WIN,
+            winLen,
+            numWins,
             IDs,
             GT,
             POS,
@@ -470,12 +503,15 @@ class POOLBatchGenerator(tf.keras.utils.Sequence):
             realLinePos = True,
             posPadVal = 0,
             normType = 'zscore',
+            seed = None
             ):
 
         self.INFO=INFO
         self.normType = normType
         self.CHROM=CHROM
-        self.WIN=WIN
+        self.winLen=winLen
+        self.numWins=numWins
+        self.indices=np.arange(self.numWins)
         self.IDs=IDs
         self.GT=GT
         self.POS=POS
@@ -489,7 +525,12 @@ class POOLBatchGenerator(tf.keras.utils.Sequence):
         self.derVal = derVal
         self.realLinePos = realLinePos
         self.posPadVal = posPadVal
+        self.seed = seed
 
+        if self.seed:
+            os.environ['PYTHONHASHSEED']=str(self.seed)
+            random.seed(self.seed)
+            np.random.seed(self.seed)
 
     def padFqs(self,haplotypes,positions,maxSNPs=None,frameWidth=0,center=False):
         '''
@@ -560,16 +601,30 @@ class POOLBatchGenerator(tf.keras.utils.Sequence):
 
 
     def __getitem__(self, idx):
+
+        indices = self.indices[idx*self.batch_size:(idx+1)*self.batch_size]
+        X, nSNPs = self.__data_generation(indices)
+
+        return X, self.CHROM, self.winLen, self.INFO, nSNPs
+
+
+    def __data_generation(self, indices):
+
+        if self.seed:
+            os.environ['PYTHONHASHSEED']=str(self.seed)
+            random.seed(self.seed)
+            np.random.seed(self.seed)
+
         GT=self.GT
 
         haps,pos=[],[]
-        for i in range(len(self.IDs)):
+        for i in indices:
             haps.append(GT[self.IDs[i][0]:self.IDs[i][1]])
             pos.append(self.POS[self.IDs[i][0]:self.IDs[i][1]])
 
         if(self.realLinePos):
             for i in range(len(pos)):
-                pos[i] = (pos[i]-(self.WIN*i)) / self.WIN
+                pos[i] = (pos[i]-(self.winLen*indices[i])) / self.winLen
 
         if(self.sortInds):
             for i in range(len(haps)):
@@ -587,6 +642,6 @@ class POOLBatchGenerator(tf.keras.utils.Sequence):
             np.set_printoptions(threshold=sys.maxsize)
             z = np.stack((haps,pos), axis=-1)
 
-            return z, self.CHROM, self.WIN, self.INFO, nSNPs
+            return z, nSNPs
 
 
