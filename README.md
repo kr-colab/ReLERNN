@@ -65,7 +65,7 @@ The complete list of arguments used in `ReLERNN_SIMULATE` is found below:
 ReLERNN_SIMULATE -h
 
 usage: ReLERNN_SIMULATE [-h] [-v VCF] [-g GENOME] [-m MASK] [-d OUTDIR]
-                        [-n DEM] [-u MU] [-l GENTIME] [-r UPRTR] [-t NCPU]
+                        [-n DEM] [-u MU] [-l GENTIME] [-r UPRTR] [-t NCPU] [-s SEED]
                         [--phased] [--unphased] [--forceDiploid] [--phaseError PHASEERROR]
                         [--maxWinSize WINSIZEMX] [--maskThresh MASKTHRESH]
                         [--nTrain NTRAIN] [--nVali NVALI] [--nTest NTEST]
@@ -90,7 +90,8 @@ optional arguments:
                         Assumed generation time (in years)
   -r UPRTR, --upperRhoThetaRatio UPRTR
                         Assumed upper bound for the ratio of rho to theta
-  -t NCPU, --nCPU NCPU  Number of CPUs to use
+  -t NCPU, --nCPU NCPU  Number of CPUs to use (defaults to total available cores)
+  -s SEED, --seed SEED  Random seed
   --phased              VCF file is phased
   --unphased            VCF file is unphased
   --forceDiploid        Treats all samples as diploids
@@ -110,13 +111,14 @@ optional arguments:
 
 
 ### Step 2) ReLERNN_TRAIN
-`ReLERNN_TRAIN` takes the simulations created by `ReLERNN_SIMULATE` and uses them to train a recurrent neural network. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analysis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/vcfprefix.pdf`.
+`ReLERNN_TRAIN` takes the simulations created by `ReLERNN_SIMULATE` and uses them to train a recurrent neural network. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analysis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/vcfprefix.pdf`. The default value of `-nCPU` is 1 for this step, as this is often produces the shortest training times per epoch (depending on missing data and the mask). Feel free to test training times using multiple cores, and set `-nCPU` to whatever works best for your data/machine.
 
 The complete list of arguments used in `ReLERNN_TRAIN` is found below:
 ```
 ReLERNN_TRAIN -h
 
 usage: ReLERNN_TRAIN [-h] [-d OUTDIR] [--nEpochs NEPOCHS]
+                     [-t NCPU] [-s SEED]
                      [--nValSteps NVALSTEPS] [--gpuID GPUID]
 
 optional arguments:
@@ -124,6 +126,8 @@ optional arguments:
   -d OUTDIR, --projectDir OUTDIR
                         Directory for all project output. NOTE: the same
                         projectDir must be used for all functions of ReLERNN
+  -t NCPU, --nCPU NCPU  Number of CPUs to use (defaults to 1)
+  -s SEED, --seed SEED  Random seed
   --nEpochs NEPOCHS     Number of epochs to train over
   --nValSteps NVALSTEPS
                         Number of validation steps
@@ -133,7 +137,7 @@ optional arguments:
 
 
 ### Step 3) ReLERNN_PREDICT
-`ReLERNN_PREDICT` now takes the same VCF file you used in `ReLERNN_SIMULATE` and predicts per-base recombination rates in non-overlapping windows across the genome. The output file of predictions will be created as `$/projectDir/vcfprefix.PREDICT.txt`. It is important to note that the window size used for predictions might be different for different chromosomes. A complete list of the window sizes used for each chromosome can be found in third column of `$/projectDir/networks/windowSizes.txt`. Use the optional `--minSites` argument to exclude windows with fewer than the desired number of SNPs. If you are not interested in estimating confidence intervals around the predictions, your ReLERNN analysis is now finished.
+`ReLERNN_PREDICT` now takes the same VCF file you used in `ReLERNN_SIMULATE` and predicts per-base recombination rates in non-overlapping windows across the genome. The output file of predictions will be created as `$/projectDir/vcfprefix.PREDICT.txt`. It is important to note that the window size used for predictions might be different for different chromosomes. A complete list of the window sizes used for each chromosome can be found in third column of `$/projectDir/networks/windowSizes.txt`. Use the optional `--minSites` argument to exclude windows with fewer than the desired number of SNPs. If you are not interested in estimating confidence intervals around the predictions, your ReLERNN analysis is now finished. If you are getting OOM errors at this step you can try setting `--batchSizeOverride` to a value significantly less than the total number of windows along a chromosome (found in the last column of `$/projectDir/networks/windowSizes.txt`).
 
 
 The complete list of arguments used in `ReLERNN_PREDICT` is found below:
@@ -141,7 +145,7 @@ The complete list of arguments used in `ReLERNN_PREDICT` is found below:
 ReLERNN_PREDICT -h
 
 usage: ReLERNN_PREDICT [-h] [-v VCF] [-d OUTDIR] [--minSites MINS]
-                       [--gpuID GPUID]
+                       [--gpuID GPUID] [--batchSizeOverride BSO] [-s SEED]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -151,9 +155,15 @@ optional arguments:
   -d OUTDIR, --projectDir OUTDIR
                         Directory for all project output. NOTE: the same
                         projectDir must be used for all functions of ReLERNN
+  --phased              VCF file is phased
+  --unphased            VCF file is unphased
   --minSites MINS       Minimum number of SNPs in a genomic window required to
                         return a prediction
   --gpuID GPUID         Identifier specifying which GPU to use
+  --batchSizeOverride BSO
+                        Batch size to use for low memory applications
+  -s SEED, --seed SEED  Random seed
+
 ```
 
 ### Optional Step 4) ReLERNN_BSCORRECT
@@ -163,7 +173,7 @@ The complete list of arguments used in `ReLERNN_BSCORRECT` is found below:
 ```
 ReLERNN_BSCORRECT -h
 
-usage: ReLERNN_BSCORRECT [-h] [-d OUTDIR] [-t NCPU] [--gpuID GPUID]
+usage: ReLERNN_BSCORRECT [-h] [-d OUTDIR] [-t NCPU] [-s SEED] [--gpuID GPUID]
                          [--nSlice NSLICE] [--nReps NREPS]
 
 optional arguments:
@@ -171,7 +181,8 @@ optional arguments:
   -d OUTDIR, --projectDir OUTDIR
                         Directory for all project output. NOTE: the same
                         projectDir must be used for all functions of ReLERNN
-  -t NCPU, --nCPU NCPU  Number of CPUs to use
+  -t NCPU, --nCPU NCPU  Number of CPUs to use (defaults to total available cores)
+  -s SEED, --seed SEED  Random seed
   --gpuID GPUID         Identifier specifying which GPU to use
   --nSlice NSLICE       Number of recombination rate bins to simulate over
   --nReps NREPS         Number of simulations per step
@@ -196,7 +207,7 @@ The complete list of arguments used in `ReLERNN_SIMULATE_POOL` is found below:
 ReLERNN_SIMULATE_POOL -h
 
 usage: ReLERNN_SIMULATE_POOL [-h] [-p POOL] [--sampleDepth SAMD] [-g GENOME] [-m MASK] [-d OUTDIR]
-                        [-n DEM] [-u MU] [-l GENTIME] [-r UPRTR] [-t NCPU]
+                        [-n DEM] [-u MU] [-l GENTIME] [-r UPRTR] [-t NCPU] [-s SEED]
                         [--maxSites WINSIZEMX] [--maskThresh MASKTHRESH]
                         [--nTrain NTRAIN] [--nVali NVALI] [--nTest NTEST]
 
@@ -219,7 +230,8 @@ optional arguments:
                         Assumed generation time (in years)
   -r UPRTR, --upperRhoThetaRatio UPRTR
                         Assumed upper bound for the ratio of rho to theta
-  -t NCPU, --nCPU NCPU  Number of CPUs to use
+  -t NCPU, --nCPU NCPU  Number of CPUs to use (defaults to total available cores)
+  -s SEED, --seed SEED  Random seed
   --maxSites WINSIZEMX
                         Max number of sites per window to train on. Important:
                         too many sites causes problems in training
@@ -233,14 +245,14 @@ optional arguments:
 
 
 ### Step 2) ReLERNN_TRAIN_POOL
-`ReLERNN_TRAIN_POOL` takes the simulations created by `ReLERNN_SIMULATE_POOL` and uses them to train a recurrent neural network. The only difference here is that the mean read depth of the pool must be specified using the `--readDepth` argument. You can also specify a minor allele frequency threshold (`--maf`), if a similar threshold was used to generate your POOLFILE. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analysis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN_POOL` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/poolprefix.pdf`.
+`ReLERNN_TRAIN_POOL` takes the simulations created by `ReLERNN_SIMULATE_POOL` and uses them to train a recurrent neural network. The only difference here is that the mean read depth of the pool must be specified using the `--readDepth` argument. You can also specify a minor allele frequency threshold (`--maf`), if a similar threshold was used to generate your POOLFILE. Again, we recommend using the defaults for `--nEpochs` and `--nValSteps`, but if you would like to do more training, feel free. To set the GPU to be used for machines with multiple dedicated GPUs use `--gpuID` (e.g. if running an analysis on two populations simultaneously, set `--gpuID 0` for the first population and `--gpuID 1` for the second). `ReLERNN_TRAIN_POOL` outputs some basic metrics of the training results for you, generating the figure `$/projectDir/networks/poolprefix.pdf`. The default value of `-nCPU` for this step is the max number of available cores, as training on pooled data with a single core can be very slow.
 
 The complete list of arguments used in `ReLERNN_TRAIN_POOL` is found below:
 ```
 ReLERNN_TRAIN_POOL -h
 
 usage: ReLERNN_TRAIN_POOL [-h] [-d OUTDIR] [--readDepth SEQD] [--maf MAF] [--nEpochs NEPOCHS]
-                     [--nValSteps NVALSTEPS] [-t NCPU] [--gpuID GPUID]
+                     [--nValSteps NVALSTEPS] [-t NCPU] [-s SEED] [--gpuID GPUID]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -252,14 +264,15 @@ optional arguments:
   --nEpochs NEPOCHS     Number of epochs to train over
   --nValSteps NVALSTEPS
                         Number of validation steps
-  -t NCPU, --nCPU NCPU           Number of CPUs to use
+  -t NCPU, --nCPU NCPU           Number of CPUs to use (defaults to total available cores)
+  -s SEED, --seed SEED  Random seed
   --gpuID GPUID         Identifier specifying which GPU to use
 ```
 
 
 
 ### Step 3) ReLERNN_PREDICT_POOL
-`ReLERNN_PREDICT_POOL` now takes the same POOL file you used in `ReLERNN_SIMULATE_POOL` and predicts per-base recombination rates in non-overlapping windows across the genome. The output file of predictions will be created as `$/projectDir/poolprefix.PREDICT.txt`. It is important to note that the window size used for predictions might be different for different chromosomes. A complete list of the window sizes used for each chromosome can be found in third column of `$/projectDir/networks/windowSizes.txt`. Use the optional `--minSites` argument to exclude windows with fewer than the desired number of SNPs. If you are not interested in estimating confidence intervals around the predictions, your ReLERNN analysis is now finished.
+`ReLERNN_PREDICT_POOL` now takes the same POOL file you used in `ReLERNN_SIMULATE_POOL` and predicts per-base recombination rates in non-overlapping windows across the genome. The output file of predictions will be created as `$/projectDir/poolprefix.PREDICT.txt`. It is important to note that the window size used for predictions might be different for different chromosomes. A complete list of the window sizes used for each chromosome can be found in third column of `$/projectDir/networks/windowSizes.txt`. Use the optional `--minSites` argument to exclude windows with fewer than the desired number of SNPs. If you are not interested in estimating confidence intervals around the predictions, your ReLERNN analysis is now finished. If you are getting OOM errors at this step you can try setting `--batchSizeOverride` to a value significantly less than the total number of windows along a chromosome (found in the last column of `$/projectDir/networks/windowSizes.txt`).
 
 
 The complete list of arguments used in `ReLERNN_PREDICT_POOL` is found below:
@@ -267,7 +280,7 @@ The complete list of arguments used in `ReLERNN_PREDICT_POOL` is found below:
 ReLERNN_PREDICT_POOL -h
 
 usage: ReLERNN_PREDICT [-h] [-p POOL] [-d OUTDIR] [--minSites MINS]
-                       [--gpuID GPUID]
+                       [--batchSizeOverride BSO] [--gpuID GPUID] [-s SEED]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -277,7 +290,10 @@ optional arguments:
                         projectDir must be used for all functions of ReLERNN
   --minSites MINS       Minimum number of SNPs in a genomic window required to
                         return a prediction
+  --batchSizeOverride BSO
+                        Batch size to use for low memory applications
   --gpuID GPUID         Identifier specifying which GPU to use
+  -s SEED, --seed SEED  Random seed
 ```
 
 ### Optional Step 4) ReLERNN_BSCORRECT
@@ -287,7 +303,7 @@ The complete list of arguments used in `ReLERNN_BSCORRECT` is found below:
 ```
 ReLERNN_BSCORRECT -h
 
-usage: ReLERNN_BSCORRECT [-h] [-d OUTDIR] [-t NCPU] [--gpuID GPUID]
+usage: ReLERNN_BSCORRECT [-h] [-d OUTDIR] [-t NCPU] [-s SEED] [--gpuID GPUID]
                          [--nSlice NSLICE] [--nReps NREPS]
 
 optional arguments:
@@ -295,7 +311,8 @@ optional arguments:
   -d OUTDIR, --projectDir OUTDIR
                         Directory for all project output. NOTE: the same
                         projectDir must be used for all functions of ReLERNN
-  -t NCPU, --nCPU NCPU  Number of CPUs to use
+  -t NCPU, --nCPU NCPU  Number of CPUs to use (defaults to total available cores)
+  -s SEED, --seed SEED  Random seed
   --gpuID GPUID         Identifier specifying which GPU to use
   --nSlice NSLICE       Number of recombination rate bins to simulate over
   --nReps NREPS         Number of simulations per step
