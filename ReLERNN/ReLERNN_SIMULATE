@@ -64,6 +64,7 @@ def main():
         demHist = check_demHist(args.dem)
         if demHist == -9:
             print("Error: demographicHistory file must be raw output from either stairwayplot, SMC++, or MSMC")
+            print("If using SMC++, file must be in *.csv format (use option -c in SMC++)")
             sys.exit(1)
         if not args.genTime:
             print("Error: assumed generation time must be supplied when simulating under stairwayplot, SMC++, or MSMC")
