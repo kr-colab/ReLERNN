@@ -249,9 +249,10 @@ class Simulator(object):
             randomTargetParameter = np.random.uniform(self.priorLowsMu,self.priorHighsMu)
             self.mu[i] = randomTargetParameter
 
-        self.seed=np.random.randint(
-            0, MAX_SEED, size=(numReps,)
-        )
+        if self.seed is None:
+            self.seed=np.repeat(self.seed, numReps)
+        else:
+            self.seed=np.random.randint(0, MAX_SEED, size=(numReps,))
 
         try:
             assert((simulator=='msprime') | (simulator=='SLiM'))
