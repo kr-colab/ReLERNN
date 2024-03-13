@@ -6,6 +6,8 @@ Author: Jared Galloway, Jeff Adrion
 from ReLERNN.imports import *
 from ReLERNN.helpers import *
 
+MAX_SEED = int(2 ** 32 - 1) # maximum allowed seed in msprime
+
 class Simulator(object):
     '''
 
@@ -247,7 +249,10 @@ class Simulator(object):
             randomTargetParameter = np.random.uniform(self.priorLowsMu,self.priorHighsMu)
             self.mu[i] = randomTargetParameter
 
-        self.seed=np.repeat(self.seed,numReps)
+        if self.seed is None:
+            self.seed=np.repeat(self.seed, numReps)
+        else:
+            self.seed=np.random.randint(0, MAX_SEED, size=(numReps,))
 
         try:
             assert((simulator=='msprime') | (simulator=='SLiM'))
