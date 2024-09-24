@@ -26,8 +26,6 @@ ${SIMULATE} \
 # Train network
 ${TRAIN} \
     --projectDir ${DIR} \
-    --nEpochs 2 \
-    --nValSteps 2 \
     --seed ${SEED}
 
 # Predict
