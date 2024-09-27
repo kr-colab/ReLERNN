@@ -29,8 +29,6 @@ ${TRAIN} \
     --projectDir ${DIR} \
     --readDepth 20 \
     --maf 0.05 \
-    --nEpochs 2 \
-    --nValSteps 2 \
     --seed ${SEED}
 
 # Predict
@@ -42,6 +40,4 @@ ${PREDICT} \
 # Parametric Bootstrapping
 ${BSCORRECT} \
     --projectDir ${DIR} \
-    --nSlice 2 \
-    --nReps 2 \
     --seed ${SEED}
