@@ -12,7 +12,7 @@ ReLERNN requires the use of a CUDA-Enabled NVIDIA GPU. The current version of Re
 Further dependencies for ReLERNN can be installed with pip.
 This is done with the following commands:
 
-```
+```bash
 $ git clone https://github.com/kr-colab/ReLERNN.git
 $ cd ReLERNN
 $ pip install .
@@ -20,11 +20,24 @@ $ pip install .
 
 It should be as simple as that.
 
+### Installing `CUDA`
+
+We are asked often about installing `CUDA` and the NVIDIA requirements. This can be quite finicky depending on your hardware setup, but many users
+have had luck installing the `tensorflow`/`cuda` requirements using `mamba` with the following recipe
+
+```bash
+$ mamba create -n relearnn-1.0.0 -c conda-forge -c nvidia python=3.10 tensorflow=2.15.0 cuda-toolkit h5py -y
+# then install ReLERNN as above
+$ git clone https://github.com/kr-colab/ReLERNN.git
+$ cd ReLERNN
+$ pip install .
+```
+
 ## Testing ReLERNN
 An example VCF file (5 contigs; 10 haploid chromosomes) and a shell script for running ReLERNN's four modules is located in `$/ReLERNN/examples`.
 To test the functionality of ReLERNN simply use the following commands:
 
-```
+```bash
 $ cd examples
 $ ./example_pipeline.sh
 ```
@@ -38,7 +51,7 @@ Please use the guidelines below for the best results when analyzing real data.
 
 You can now test the functionality of ReLERNN for use with pool-seq data by using the following commands:
 
-```
+```bash
 $ cd examples
 $ ./example_pipeline_pool.sh
 ```
