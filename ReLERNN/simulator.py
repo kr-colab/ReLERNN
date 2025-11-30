@@ -62,7 +62,7 @@ class Simulator(object):
         self.winMasks = winMasks
         self.mdMask = mdMask
         self.maskThresh = maskThresh
-        self.phased = None
+        self.phased = phased
         self.phaseError = phaseError
         self.hotspots = hotspots
         self.nHotWins = nHotWins
