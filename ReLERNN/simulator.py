@@ -71,8 +71,8 @@ class Simulator(object):
 
         if self.seed:
             os.environ['PYTHONHASHSEED']=str(self.seed)
-            random.seed(self.seed)
-            np.random.seed(self.seed)
+            random.seed(int(self.seed))
+            np.random.seed(int(self.seed))
 
 
     def runOneMsprimeSim(self,simNum,direc):
@@ -84,7 +84,7 @@ class Simulator(object):
 
         MR = self.mu[simNum]
         RR = self.rho[simNum]
-        SEED = self.seed[simNum]
+        SEED = int(self.seed[simNum])
         os.environ['PYTHONHASHSEED']=str(SEED)
         random.seed(SEED)
         np.random.seed(SEED)

@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ReLERNN"
+version = "0.2"
+description = "ReLERNN: Recombination Landscape Estimation using Recurrent Neural Networks"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.10,<3.14"
+authors = [
+    { name = "Jeffrey Adrion", email = "jeffreyadrion@gmail.com" },
+    { name = "Jared Galloway", email = "jaredgalloway07@gmail.com" },
+    { name = "Andrew Kern", email = "adk@uoregon.edu" },
+]
+
+[project.urls]
+Homepage = "https://github.com/kr-colab/ReLERNN/"
+
+[tool.setuptools]
+script-files = [
+    "ReLERNN/ReLERNN_SIMULATE",
+    "ReLERNN/ReLERNN_SIMULATE_POOL",
+    "ReLERNN/ReLERNN_TRAIN",
+    "ReLERNN/ReLERNN_TRAIN_POOL",
+    "ReLERNN/ReLERNN_PREDICT",
+    "ReLERNN/ReLERNN_PREDICT_POOL",
+    "ReLERNN/ReLERNN_BSCORRECT",
+]
+
+[tool.setuptools.packages.find]
+include = ["ReLERNN*"]

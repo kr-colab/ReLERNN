@@ -50,14 +50,13 @@ def ParametricBootStrap(simParameters,
     '''
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
+    gpus = tf.config.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
 
-    # load json and create model
+    # load trained model
     if(network != None):
-        jsonFILE = open(network[0],"r")
-        loadedModel = jsonFILE.read()
-        jsonFILE.close()
-        model=model_from_json(loadedModel)
-        model.load_weights(network[1])
+        model = keras.saving.load_model(network)
     else:
         print("Error: no pretrained network found!")
 
@@ -156,7 +155,7 @@ def main():
     networkDir = os.path.join(projectDir,"networks")
     bs_resultFile = os.path.join(networkDir,"bootstrapResults.p")
     bs_plotFile = os.path.join(networkDir,"bootstrapPlot.pdf")
-    modelWeights = [os.path.join(networkDir,"model.json"),os.path.join(networkDir,"weights.h5")]
+    modelWeights = os.path.join(networkDir,"model.keras")
     bs_resultFile = os.path.join(networkDir,"bootstrapResults.p")
     bsDir = os.path.join(projectDir,"PBS")
 

@@ -6,40 +6,31 @@ ReLERNN uses deep learning to infer the genome-wide landscape of recombination f
 This repository contains the code and instructions required to run ReLERNN, and includes example files to ensure everything is working properly. The manuscript detailing ReLERNN can be found [here](https://academic.oup.com/mbe/advance-article/doi/10.1093/molbev/msaa038/5741419).
 
 ## Recommended installation on linux
-Install `tensorflow 2` on your system. Directions can be found [here](https://www.tensorflow.org/install). You will also need to install the CUDA toolkit and CuDNN.
-ReLERNN requires the use of a CUDA-Enabled NVIDIA GPU. The current version of ReLERNN has been successfully tested with tensorflow/2.2.0, cudatoolkit/10.1.243, and cudnn/7.6.5.
 
-Further dependencies for ReLERNN can be installed with pip.
-This is done with the following commands:
+ReLERNN requires a CUDA-enabled NVIDIA GPU, Python 3.10+, and TensorFlow 2.18+.
+
+[pixi](https://pixi.sh) handles Python, CUDA, and all dependencies in one step:
 
 ```bash
 $ git clone https://github.com/kr-colab/ReLERNN.git
 $ cd ReLERNN
-$ pip install .
+$ pixi install
 ```
 
-It should be as simple as that.
-
-### Installing `CUDA`
-
-We are asked often about installing `CUDA` and the NVIDIA requirements. This can be quite finicky depending on your hardware setup, but many users
-have had luck installing the `tensorflow`/`cuda` requirements using `mamba` with the following recipe
+This creates an environment with GPU support by default. For CPU-only use:
 
 ```bash
-$ mamba create -n relearnn-1.0.0 -c conda-forge -c nvidia python=3.10 tensorflow=2.15.0 cuda-toolkit h5py -y
-# then install ReLERNN as above
-$ git clone https://github.com/kr-colab/ReLERNN.git
-$ cd ReLERNN
-$ pip install .
+$ pixi install -e cpu
 ```
+
+You can then run commands via `pixi run` or activate the environment with `pixi shell`.
 
 ## Testing ReLERNN
 An example VCF file (5 contigs; 10 haploid chromosomes) and a shell script for running ReLERNN's four modules is located in `$/ReLERNN/examples`.
 To test the functionality of ReLERNN simply use the following commands:
 
 ```bash
-$ cd examples
-$ ./example_pipeline.sh
+$ pixi run example
 ```
 
 Provided everything worked as planned, `$ReLERNN/examples/example_output/` should be populated with a few directories along with the files: `example.PREDICT.txt` and `example.PREDICT.BSCORRECT.txt`.
@@ -52,8 +43,7 @@ Please use the guidelines below for the best results when analyzing real data.
 You can now test the functionality of ReLERNN for use with pool-seq data by using the following commands:
 
 ```bash
-$ cd examples
-$ ./example_pipeline_pool.sh
+$ pixi run example-pool
 ```
 
 ## Estimating a recombination landscape from individually sequenced chromosomes

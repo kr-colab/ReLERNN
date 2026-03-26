@@ -36,7 +36,7 @@ def GRU_TUNED84(x,y):
     #----------------------------------------------------
 
     model = Model(inputs=[genotype_inputs,position_inputs], outputs=[output])
-    model.compile(optimizer='Adam', loss='mse')
+    model.compile(optimizer='Adam', loss='mse', jit_compile=False)
     model.summary()
 
     return model
@@ -54,7 +54,7 @@ def GRU_POOLED(x,y):
     output = layers.Dense(1)(model)
 
     model = Model(inputs=[genotype_inputs], outputs=[output])
-    model.compile(optimizer='Adam', loss='mse')
+    model.compile(optimizer='Adam', loss='mse', jit_compile=False)
     model.summary()
 
     return model
@@ -89,7 +89,7 @@ def HOTSPOT_CLASSIFY(x,y):
     #----------------------------------------------------
 
     model = Model(inputs=[genotype_inputs,position_inputs], outputs=[output])
-    model.compile(optimizer='adam', loss='binary_crossentropy')
+    model.compile(optimizer='adam', loss='binary_crossentropy', jit_compile=False)
     model.summary()
 
     return model

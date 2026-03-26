@@ -270,22 +270,13 @@ def load_and_predictVCF(VCFGenerator,
         sys.exit(1)
 
     os.environ["CUDA_VISIBLE_DEVICES"] = str(gpuID)
+    gpus = tf.config.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
 
-    ## The following code block appears necessary for running with tf2 and cudnn
-    from tensorflow.compat.v1 import ConfigProto
-    from tensorflow.compat.v1 import Session
-    config = ConfigProto()
-    config.gpu_options.allow_growth = True
-    Session(config=config)
-    ###
-
-    # load json and create model
+    # load trained model
     if(network != None):
-        jsonFILE = open(network[0],"r")
-        loadedModel = jsonFILE.read()
-        jsonFILE.close()
-        model=model_from_json(loadedModel)
-        model.load_weights(network[1])
+        model = keras.saving.load_model(network)
     else:
         print("Error: no pretrained network found!")
         sys.exit(1)
@@ -326,14 +317,9 @@ def runModels(ModelFuncPointer,
 
 
     os.environ["CUDA_VISIBLE_DEVICES"]=str(gpuID)
-
-    ## The following code block appears necessary for running with tf2 and cudnn
-    from tensorflow.compat.v1 import ConfigProto
-    from tensorflow.compat.v1 import Session
-    config = ConfigProto()
-    config.gpu_options.allow_growth = True
-    Session(config=config)
-    ###
+    gpus = tf.config.list_physical_devices('GPU')
+    for gpu in gpus:
+        tf.config.experimental.set_memory_growth(gpu, True)
 
     if(resultsFile == None):
 
@@ -351,43 +337,25 @@ def runModels(ModelFuncPointer,
                 min_delta=0.01,
                 patience=100),
             ModelCheckpoint(
-                filepath=network[1],
+                filepath=network,
                 monitor='val_loss',
                 save_best_only=True),
             TerminateOnNaN()
             ]
 
-    if nCPU > 1:
-        history = model.fit(TrainGenerator,
-            steps_per_epoch=epochSteps,
-            epochs=numEpochs,
-            validation_data=ValidationGenerator,
-            callbacks=callbacks_list,
-            use_multiprocessing=True,
-            max_queue_size=nCPU,
-            workers=nCPU)
-    else:
-        history = model.fit(TrainGenerator,
-            steps_per_epoch=epochSteps,
-            epochs=numEpochs,
-            validation_data=ValidationGenerator,
-            callbacks=callbacks_list,
-            use_multiprocessing=False)
+    history = model.fit(TrainGenerator,
+        steps_per_epoch=epochSteps,
+        epochs=numEpochs,
+        validation_data=ValidationGenerator,
+        callbacks=callbacks_list)
 
-    # Write the network
+    # Save the trained model
     if(network != None):
-        ##serialize model to JSON
-        model_json = model.to_json()
-        with open(network[0], "w") as json_file:
-            json_file.write(model_json)
+        model.save(network)
 
-    # Load json and create model
+    # Reload best weights for test evaluation
     if(network != None):
-        jsonFILE = open(network[0],"r")
-        loadedModel = jsonFILE.read()
-        jsonFILE.close()
-        model=model_from_json(loadedModel)
-        model.load_weights(network[1])
+        model = keras.saving.load_model(network)
     else:
         print("Error: model and weights not loaded")
         sys.exit(1)

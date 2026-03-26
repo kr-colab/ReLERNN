@@ -38,8 +38,7 @@ def main():
     testDir = os.path.join(projectDir,"test")
     networkDir = os.path.join(projectDir,"networks")
     poolDir = os.path.join(projectDir,"splitPOOLs")
-    modelSave = os.path.join(networkDir,"model.json")
-    weightsSave = os.path.join(networkDir,"weights.h5")
+    modelSave = os.path.join(networkDir,"model.keras")
 
 
     ## Read in the window sizes
@@ -124,7 +123,7 @@ def main():
         pred_resultFile = os.path.join(projectDir,wins[i][0]+".CHPREDICT.txt")
         load_and_predictVCF(VCFGenerator=pool_gen,
                 resultsFile=pred_resultFile,
-                network=[modelSave,weightsSave],
+                network=modelSave,
                 chromStr=wins[i][0],
                 minS=args.minS,
                 numWins=numWins,

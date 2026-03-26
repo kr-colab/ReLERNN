@@ -40,8 +40,7 @@ def main():
     testDir = os.path.join(projectDir,"test")
     networkDir = os.path.join(projectDir,"networks")
     vcfDir = os.path.join(projectDir,"splitVCFs")
-    modelSave = os.path.join(networkDir,"model.json")
-    weightsSave = os.path.join(networkDir,"weights.h5")
+    modelSave = os.path.join(networkDir,"model.keras")
 
 
     ## Read in the window sizes
@@ -121,7 +120,7 @@ def main():
         pred_resultFiles.append(pred_resultFile)
         load_and_predictVCF(VCFGenerator=vcf_gen,
                 resultsFile=pred_resultFile,
-                network=[modelSave,weightsSave],
+                network=modelSave,
                 chromStr=wins[i][0],
                 minS=args.minS,
                 numWins=numWins,

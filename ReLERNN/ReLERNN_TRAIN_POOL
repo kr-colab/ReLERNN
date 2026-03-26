@@ -55,8 +55,7 @@ def main():
     ## Define output files
     test_resultFile = os.path.join(networkDir,"testResults.p")
     test_resultFig = os.path.join(networkDir,"testResults.pdf")
-    modelSave = os.path.join(networkDir,"model.json")
-    weightsSave = os.path.join(networkDir,"weights.h5")
+    modelSave = os.path.join(networkDir,"model.keras")
 
 
     ## Identify padding required
@@ -125,7 +124,7 @@ def main():
             ValidationGenerator=vali_sequence,
             TestGenerator=test_sequence,
             resultsFile=test_resultFile,
-            network=[modelSave,weightsSave],
+            network=modelSave,
             numEpochs=args.nEpochs,
             validationSteps=args.nValSteps,
             nCPU=nProc,
