@@ -33,10 +33,15 @@ XLA_FLAGS = "--xla_gpu_cuda_data_dir=$CONDA_PREFIX"
 [feature.cpu.dependencies]
 tensorflow = { version = ">=2.16", build = "cpu*" }
 
+[feature.test.dependencies]
+pytest = ">=7.0"
+
 [environments]
 default = ["cuda"]
 cpu = ["cpu"]
+test = ["cpu", "test"]
 
 [tasks]
+test = { cmd = "pytest tests/ -v" }
 example = { cmd = "bash example_pipeline.sh", cwd = "examples" }
 example-pool = { cmd = "bash example_pipeline_pool.sh", cwd = "examples" }
