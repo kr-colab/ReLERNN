@@ -17,7 +17,9 @@ $ cd ReLERNN
 $ pixi install
 ```
 
-This creates an environment with GPU support by default. For CPU-only use:
+This creates an environment with GPU support by default. If you are using on an HPC cluster, you might need to set the CUDA override before installing. Do this by running `export CONDA_OVERRIDE_CUDA=12.8` before `pixi install` (replace 12.8 with your CUDA version). 
+
+For CPU-only use:
 
 ```bash
 $ pixi install -e cpu
