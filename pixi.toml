@@ -1,4 +1,4 @@
-[project]
+[workspace]
 name = "ReLERNN"
 version = "0.2.0"
 description = "Recombination Landscape Estimation using Recurrent Neural Networks"
