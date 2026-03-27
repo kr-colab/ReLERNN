@@ -23,7 +23,18 @@ This creates an environment with GPU support by default. For CPU-only use:
 $ pixi install -e cpu
 ```
 
-You can then run commands via `pixi run` or activate the environment with `pixi shell`.
+To use ReLERNN, either activate the environment or prefix commands with `pixi run`:
+
+```bash
+# Option 1: activate the environment, then run commands directly
+$ pixi shell
+$ ReLERNN_SIMULATE --vcf input.vcf --genome genome.bed --projectDir ./output/ ...
+
+# Option 2: prefix each command with pixi run
+$ pixi run ReLERNN_SIMULATE --vcf input.vcf --genome genome.bed --projectDir ./output/ ...
+```
+
+All examples below show bare commands and assume an activated environment.
 
 ## Testing ReLERNN
 An example VCF file (5 contigs; 10 haploid chromosomes) and a shell script for running ReLERNN's four modules is located in `$/ReLERNN/examples`.
